@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>字境 · 认识汉字</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="kai-preload" aria-hidden="true">一二三四五六七八九十百千万的了着过吗呢不也很最太都就和是有没在这那什么谁哪几怎为能会可要知道说话学习我你他她们人大小口目手足心耳头面牙发身男女子父母爸妈哥姐弟妹爷奶孩友老少好爱喜欢上下中左右前后里外东南西北来去回出进到看听吃喝睡走跑坐站飞玩买给用做打找拿放开关门家房车路书衣饭菜水日月山火木土石田天雨云风电星雪花草树叶果春夏秋冬江河海光明空地气阳红黄蓝绿白黑金鱼鸟马牛羊狗猫虫鸡鸭猪兔虎龙蛇猴熊象鼠蛙</div>
+  <div class="atmosphere" aria-hidden="true">
+    <div class="mist mist-a"></div>
+    <div class="mist mist-b"></div>
+    <div class="ink-wash"></div>
+  </div>
+
+  <div id="app">
+    <!-- Home -->
+    <section class="screen active" id="screen-home" data-screen="home">
+      <header class="brand-hero">
+        <p class="seal" aria-hidden="true">识</p>
+        <h1 class="brand">字境</h1>
+        <p class="tagline">读准音 · 写好字</p>
+        <button type="button" class="btn primary" id="btn-start">开始识字</button>
+      </header>
+      <p class="home-hint">每字一关：先读音，再写笔画</p>
+      <p class="book-credit" id="home-credit"></p>
+    </section>
+
+    <!-- Character select -->
+    <section class="screen" id="screen-select" data-screen="select">
+      <header class="topbar">
+        <button type="button" class="btn ghost back" data-goto="home">返回</button>
+        <h2 class="screen-title">选择汉字</h2>
+      </header>
+      <div class="group-tabs" id="group-tabs" role="tablist" aria-label="字库分类"></div>
+      <p class="select-meta" id="select-meta"></p>
+      <p class="book-credit select-credit" id="select-credit"></p>
+      <div class="char-grid" id="char-grid"></div>
+    </section>
+
+    
+
+    <!-- Practice: pronounce then stroke -->
+    <section class="screen" id="screen-practice" data-screen="practice">
+      <header class="topbar">
+        <button type="button" class="btn ghost back" id="practice-back">返回</button>
+        <div class="stage-meta">
+          <span class="stage-badge">练习 · 读音 + 笔画</span>
+          <span class="char-pill" id="practice-char-label"></span>
+        </div>
+      </header>
+      <div class="stage-body practice-body">
+        <section class="practice-block" id="block-pronounce" aria-label="读音校准">
+          <h3 class="block-title"><span class="step-num">1</span> 校准读音</h3>
+          <div class="pinyin-card compact">
+            <span class="big-char" id="pronounce-char"></span>
+            <span class="pinyin" id="pronounce-pinyin"></span>
+            <span class="meaning" id="pronounce-meaning"></span>
+          </div>
+          <p class="prompt sm">先听标准读音，再朗读校准</p>
+          <div class="pronounce-actions">
+            <button type="button" class="btn secondary" id="btn-listen">▶ 听标准音</button>
+            <button type="button" class="btn primary" id="btn-speak">🎤 开始朗读</button>
+          </div>
+          <div class="meter" id="pronounce-meter" hidden>
+            <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+            <p class="meter-label" id="meter-label">匹配度 —</p>
+          </div>
+          <p class="feedback" id="pronounce-feedback" hidden></p>
+          <p class="mic-note" id="mic-note"></p>
+          <button type="button" class="btn ghost" id="btn-skip-speak">已会读，开始写字</button>
+        </section>
+
+        <section class="practice-block stroke-block" id="block-stroke" aria-label="笔画书写" data-locked="true">
+          <h3 class="block-title"><span class="step-num">2</span> 练习笔画</h3>
+          <p class="stroke-lock-hint" id="stroke-lock-hint">完成读音后解锁描红</p>
+          <div class="stroke-panel" id="stroke-panel">
+            <p class="prompt sm" id="stroke-prompt">顺着绿色虚线描红，从红点起笔</p>
+            <div class="stroke-board">
+              <div id="stroke-target" class="stroke-target" aria-label="笔画书写板"></div>
+              <div class="stroke-hud">
+                <span id="stroke-count">笔画 0 / 0</span>
+                <button type="button" class="btn ghost sm" id="btn-stroke-undo">撤销</button>
+                <button type="button" class="btn ghost sm" id="btn-stroke-clear">重写</button>
+                <button type="button" class="btn ghost sm" id="btn-stroke-hint">演示</button>
+              </div>
+            </div>
+            <p class="feedback" id="stroke-feedback" hidden></p>
+            <button type="button" class="btn primary" id="btn-finish" hidden>完成 · 下一字</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Complete -->
+    <section class="screen" id="screen-done" data-screen="done">
+      <div class="done-card">
+        <p class="seal done-seal" aria-hidden="true">通</p>
+        <h2 class="done-title">关卡完成</h2>
+        <p class="done-char" id="done-char"></p>
+        <p class="done-msg" id="done-msg"></p>
+        <div class="done-actions">
+          <button type="button" class="btn primary" id="btn-next-char">下一个字</button>
+          <button type="button" class="btn secondary" data-goto="select">返回选字</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
