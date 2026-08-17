@@ -1,4 +1,7 @@
-/** 读音：标准朗读 + 语音识别校准 */
+/** 读音：标准朗读 + 声母/韵母/整字校准 */
+
+/** 约为原语速的 0.5 倍（更慢、更清晰） */
+export const SPEECH_RATE = 0.42;
 
 function stripTone(pinyin) {
   return pinyin
@@ -12,6 +15,97 @@ function stripTone(pinyin) {
     .replace(/[ǖǘǚǜü]/g, "v")
     .toLowerCase()
     .replace(/[^a-z]/g, "");
+}
+
+/** 教学用声母读法（便于 TTS 发声） */
+const INITIAL_DEMO = {
+  b: "bo",
+  p: "po",
+  m: "mo",
+  f: "fo",
+  d: "de",
+  t: "te",
+  n: "ne",
+  l: "le",
+  g: "ge",
+  k: "ke",
+  h: "he",
+  j: "ji",
+  q: "qi",
+  x: "xi",
+  zh: "zhi",
+  ch: "chi",
+  sh: "shi",
+  r: "ri",
+  z: "zi",
+  c: "ci",
+  s: "si",
+  y: "yi",
+  w: "wu",
+};
+
+const INITIALS = [
+  "zh",
+  "ch",
+  "sh",
+  "b",
+  "p",
+  "m",
+  "f",
+  "d",
+  "t",
+  "n",
+  "l",
+  "g",
+  "k",
+  "h",
+  "j",
+  "q",
+  "x",
+  "r",
+  "z",
+  "c",
+  "s",
+  "y",
+  "w",
+];
+
+/**
+ * 拆分带调拼音为声母 / 韵母
+ */
+export function splitPinyin(pinyin) {
+  const raw = (pinyin || "").trim();
+  const plain = stripTone(raw);
+  let initial = "";
+  let finalPlain = plain;
+
+  for (const ini of INITIALS) {
+    if (plain.startsWith(ini)) {
+      initial = ini;
+      finalPlain = plain.slice(ini.length) || plain;
+      break;
+    }
+  }
+
+  let final = raw;
+  if (initial) {
+    const re = new RegExp(`^${initial}`, "i");
+    final = raw.replace(re, "") || raw;
+  }
+
+  if (!finalPlain) {
+    finalPlain = plain;
+    final = raw;
+  }
+
+  return {
+    initial,
+    final,
+    initialPlain: initial,
+    finalPlain,
+    initialDemo: initial ? INITIAL_DEMO[initial] || initial : "",
+    hasInitial: Boolean(initial),
+  };
 }
 
 function similarity(a, b) {
@@ -43,18 +137,21 @@ function levenshtein(a, b) {
 
 function isLikelySafari() {
   const ua = navigator.userAgent || "";
-  return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua);
+  return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox|MicroMessenger/i.test(ua);
 }
 
 function isLikelyFirefox() {
   return /Firefox/i.test(navigator.userAgent || "");
 }
 
-/** 语音识别：目前仅 Chromium 系（Chrome / Edge 等）较可靠 */
+export function isWeChat() {
+  return /MicroMessenger/i.test(navigator.userAgent || "");
+}
+
 export function canUseSpeechRecognition() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return false;
-  // Safari 即使有接口也常无法正常识别中文
+  if (isWeChat()) return false;
   if (isLikelySafari()) return false;
   if (isLikelyFirefox()) return false;
   return true;
@@ -63,22 +160,26 @@ export function canUseSpeechRecognition() {
 export function getSpeechSupportInfo() {
   const recognition = canUseSpeechRecognition();
   const tts = Boolean(window.speechSynthesis);
+  const wechat = isWeChat();
   let browserTip = "";
-  if (!recognition) {
+  if (wechat) {
+    browserTip =
+      "微信内置浏览器不支持朗读校准，播报也可能无声。请点右上角「···」→「在浏览器打开」（建议 Chrome）；或直接点下方按钮继续写字。";
+  } else if (!recognition) {
     if (isLikelySafari()) {
       browserTip =
-        "当前是 Safari，不支持朗读校准。请听标准音后点「已会读，开始写字」，或改用 Chrome。";
+        "当前是 Safari，不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome。";
     } else if (isLikelyFirefox()) {
       browserTip =
-        "当前是 Firefox，不支持朗读校准。请听标准音后点「已会读，开始写字」，或改用 Chrome。";
+        "当前是 Firefox，不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome。";
     } else {
       browserTip =
-        "当前浏览器不支持朗读校准。请听标准音后点「已会读，开始写字」，或改用 Chrome / Edge。";
+        "当前浏览器不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome / Edge。";
     }
   } else {
-    browserTip = "听标准音后，清晰读出该字。需允许麦克风权限。";
+    browserTip = "按步骤听：声母 → 韵母 → 整字；听完后朗读校准。需允许麦克风权限。";
   }
-  return { recognition, tts, browserTip };
+  return { recognition, tts, wechat, browserTip };
 }
 
 function pickChineseVoice() {
@@ -110,12 +211,11 @@ function waitForVoices() {
   });
 }
 
-export async function speakCharacter(char, pinyin) {
-  if (!window.speechSynthesis) return false;
+export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN" } = {}) {
+  if (!window.speechSynthesis || !text) return false;
 
   await waitForVoices();
   window.speechSynthesis.cancel();
-  // Safari 常把合成引擎挂起，需要 resume
   try {
     window.speechSynthesis.resume();
   } catch {
@@ -123,9 +223,9 @@ export async function speakCharacter(char, pinyin) {
   }
 
   return new Promise((resolve) => {
-    const u = new SpeechSynthesisUtterance(char);
-    u.lang = "zh-CN";
-    u.rate = 0.85;
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = lang;
+    u.rate = rate;
     const zh = pickChineseVoice();
     if (zh) u.voice = zh;
 
@@ -139,7 +239,6 @@ export async function speakCharacter(char, pinyin) {
     u.onend = () => finish(true);
     u.onerror = () => finish(false);
 
-    // Safari：部分机型首句不响，短延迟再播
     setTimeout(() => {
       try {
         window.speechSynthesis.resume();
@@ -149,10 +248,45 @@ export async function speakCharacter(char, pinyin) {
       }
     }, isLikelySafari() ? 80 : 0);
 
-    // 兜底：超时仍无回调则当作结束
-    setTimeout(() => finish(true), 4000);
-    void pinyin;
+    setTimeout(() => finish(true), Math.max(5000, String(text).length * 800));
   });
+}
+
+export async function speakCharacter(char, pinyin) {
+  void pinyin;
+  return speakText(char, { rate: SPEECH_RATE });
+}
+
+/** 按声母 → 韵母 → 整字依次慢速示范 */
+export async function speakSyllableParts(char, pinyin, onStep) {
+  const parts = splitPinyin(pinyin);
+  const steps = [];
+  if (parts.hasInitial) {
+    steps.push({
+      key: "initial",
+      label: "声母",
+      speak: parts.initialDemo || parts.initial,
+      show: parts.initial,
+    });
+  }
+  steps.push({
+    key: "final",
+    label: "韵母",
+    speak: parts.finalPlain || parts.final,
+    show: parts.final,
+  });
+  steps.push({ key: "full", label: "整字", speak: char, show: pinyin });
+
+  for (const step of steps) {
+    onStep?.(step);
+    const ok = await speakText(step.speak, {
+      rate: step.key === "full" ? SPEECH_RATE : Math.min(SPEECH_RATE, 0.4),
+      lang: "zh-CN",
+    });
+    if (!ok) return false;
+    await new Promise((r) => setTimeout(r, 280));
+  }
+  return true;
 }
 
 export function getRecognition() {
@@ -167,25 +301,49 @@ export function getRecognition() {
 }
 
 export function scorePronunciation(results, targetChar, targetPinyin) {
-  const plain = stripTone(targetPinyin);
+  return scorePart(results, { mode: "full", char: targetChar, pinyin: targetPinyin });
+}
+
+/** 分项打分：initial / final / full */
+export function scorePart(results, { mode, char, pinyin, parts }) {
+  const p = parts || splitPinyin(pinyin);
+  let targets = [];
+  if (mode === "initial") {
+    targets = [p.initial, p.initialDemo, p.initialPlain].filter(Boolean);
+  } else if (mode === "final") {
+    targets = [p.final, p.finalPlain, stripTone(p.final)].filter(Boolean);
+  } else {
+    targets = [char, pinyin, stripTone(pinyin)].filter(Boolean);
+  }
+
   let best = 0;
   let heard = "";
 
   for (const alt of results) {
     const transcript = (alt.transcript || "").trim();
     heard = heard || transcript;
-    if (transcript.includes(targetChar)) {
+    const tPlain = stripTone(transcript);
+
+    if (mode === "full" && transcript.includes(char)) {
       best = Math.max(best, 0.95 + (alt.confidence || 0) * 0.05);
     }
-    const tPlain = stripTone(transcript);
-    best = Math.max(best, similarity(tPlain, plain));
-    best = Math.max(best, similarity(transcript, targetChar));
+
+    for (const t of targets) {
+      const tp = stripTone(t);
+      best = Math.max(best, similarity(tPlain, tp));
+      best = Math.max(best, similarity(transcript.toLowerCase(), String(t).toLowerCase()));
+      if (transcript.includes(t) || tPlain.includes(tp) || tp.includes(tPlain)) {
+        best = Math.max(best, 0.8);
+      }
+    }
   }
 
+  const threshold = mode === "full" ? 0.62 : 0.55;
   return {
     score: Math.round(Math.min(1, best) * 100),
     heard,
-    pass: best >= 0.62,
+    pass: best >= threshold,
+    mode,
   };
 }
 

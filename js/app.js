@@ -1,10 +1,14 @@
 import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js";
 import { StrokeBoard } from "./stroke.js";
 import {
-  speakCharacter,
+  speakText,
+  speakSyllableParts,
   getRecognition,
-  scorePronunciation,
+  scorePart,
   getSpeechSupportInfo,
+  isWeChat,
+  splitPinyin,
+  SPEECH_RATE,
 } from "./pronounce.js";
 
 const STORAGE_KEY = "zijijing-progress-v2";
@@ -17,6 +21,9 @@ const state = {
   recognizing: false,
   pronounceDone: false,
   strokeReady: false,
+  soundStep: "initial",
+  soundParts: null,
+  soundPassed: { initial: false, final: false, full: false },
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -165,39 +172,89 @@ function unlockStroke() {
   });
 }
 
+function soundStepOrder(parts) {
+  const steps = [];
+  if (parts?.hasInitial) steps.push("initial");
+  steps.push("final", "full");
+  return steps;
+}
+
+function setSoundStep(step) {
+  const parts = state.soundParts;
+  const order = soundStepOrder(parts);
+  if (!order.includes(step)) step = order[0];
+  state.soundStep = step;
+
+  $$(".sound-step").forEach((btn) => {
+    const s = btn.dataset.step;
+    btn.hidden = s === "initial" && !parts?.hasInitial;
+    btn.classList.toggle("active", s === step);
+    btn.classList.toggle("passed", Boolean(state.soundPassed[s]));
+  });
+
+  $$(".syl-part").forEach((el) => {
+    const p = el.dataset.part;
+    el.classList.toggle("active", p === step);
+    el.classList.toggle("passed", Boolean(state.soundPassed[p]));
+  });
+
+  const labels = {
+    initial: `先听声母「${parts?.initial || ""}」，再朗读`,
+    final: `再听韵母「${parts?.final || ""}」，再朗读`,
+    full: `最后听整字组合「${parts ? getCharacter(state.currentId).pinyin : ""}」，再朗读`,
+  };
+  const prompt = $("#pronounce-prompt");
+  if (prompt) prompt.textContent = labels[step] || "听标准音后朗读校准";
+}
+
+function advanceSoundStepOrUnlock() {
+  const order = soundStepOrder(state.soundParts);
+  const allPassed = order.every((s) => state.soundPassed[s]);
+  if (allPassed) {
+    $("#btn-skip-speak").hidden = true;
+    unlockStroke();
+    return;
+  }
+  const idx = order.indexOf(state.soundStep);
+  const next = order.slice(idx + 1).find((s) => !state.soundPassed[s]) || order.find((s) => !state.soundPassed[s]);
+  if (next) setSoundStep(next);
+}
+
 function openPractice() {
   const item = getCharacter(state.currentId);
   state.pronounceDone = false;
   state.strokeReady = false;
   state.recognizing = false;
+  state.soundParts = splitPinyin(item.pinyin);
+  state.soundPassed = { initial: !state.soundParts.hasInitial, final: false, full: false };
 
   $("#practice-char-label").textContent = item.char;
   $("#pronounce-char").textContent = item.char;
   $("#pronounce-pinyin").textContent = item.pinyin;
   $("#pronounce-meaning").textContent = item.meaning;
+  $("#syl-initial").textContent = state.soundParts.hasInitial ? state.soundParts.initial : "（无）";
+  $("#syl-final").textContent = state.soundParts.final || "—";
+  $("#syl-full").textContent = item.pinyin;
   $("#pronounce-feedback").hidden = true;
   $("#pronounce-meter").hidden = true;
   $("#meter-fill").style.width = "0%";
   $("#btn-speak").classList.remove("listening");
-  $("#btn-speak").textContent = "🎤 开始朗读";
+  $("#btn-speak").textContent = "🎤 读这一步";
   $("#btn-skip-speak").hidden = false;
   $("#btn-finish").hidden = true;
+  $("#btn-listen").textContent = "▶ 听这一步";
 
   const support = getSpeechSupportInfo();
   $("#mic-note").textContent = support.browserTip;
   $("#block-pronounce").dataset.mode = support.recognition ? "mic" : "listen-only";
 
-  // 无语音识别时：隐藏朗读按钮，把「已会读」提升为主按钮
   $("#btn-speak").hidden = !support.recognition;
   const skip = $("#btn-skip-speak");
   skip.className = support.recognition ? "btn ghost" : "btn primary";
-  skip.textContent = support.recognition ? "已会读，开始写字" : "听完了，开始写字";
-
-  const prompt = $("#block-pronounce .prompt");
-  if (prompt) {
-    prompt.textContent = support.recognition
-      ? "先听标准读音，再朗读校准"
-      : "先听标准读音，跟读练习后继续写字";
+  if (support.wechat) {
+    skip.textContent = "先写字（可稍后再读）";
+  } else {
+    skip.textContent = support.recognition ? "已会读，开始写字" : "听完了，开始写字";
   }
 
   if (!support.tts) {
@@ -206,8 +263,21 @@ function openPractice() {
     $("#pronounce-feedback").textContent = "当前浏览器不支持播报读音，可直接点下方按钮进入写字。";
   }
 
+  setSoundStep(state.soundParts.hasInitial ? "initial" : "final");
   setStrokeLocked(true);
   showScreen("practice");
+}
+
+function currentStepSpeakTarget(item) {
+  const parts = state.soundParts;
+  const step = state.soundStep;
+  if (step === "initial") {
+    return { text: parts.initialDemo || parts.initial, mode: "initial" };
+  }
+  if (step === "final") {
+    return { text: parts.finalPlain || parts.final, mode: "final" };
+  }
+  return { text: item.char, mode: "full" };
 }
 
 async function onListen() {
@@ -216,13 +286,36 @@ async function onListen() {
   const feedback = $("#pronounce-feedback");
   btn.disabled = true;
   btn.textContent = "朗读中…";
-  const ok = await speakCharacter(item.char, item.pinyin);
+  const target = currentStepSpeakTarget(item);
+  const ok = await speakText(target.text, { rate: SPEECH_RATE });
   btn.disabled = false;
-  btn.textContent = "▶ 听标准音";
+  btn.textContent = "▶ 听这一步";
   if (!ok) {
     feedback.hidden = false;
     feedback.className = "feedback bad";
-    feedback.textContent = "播报失败。请确认设备未静音；也可直接点下方按钮继续写字。";
+    feedback.textContent = isWeChat()
+      ? "微信内常无法播报。请看拼音跟读，或点下方按钮直接写字；完整读音请用浏览器打开。"
+      : "播报失败。请确认设备未静音；也可直接点下方按钮继续写字。";
+  }
+}
+
+async function onListenAll() {
+  const item = getCharacter(state.currentId);
+  const btn = $("#btn-listen-all");
+  const feedback = $("#pronounce-feedback");
+  btn.disabled = true;
+  $("#btn-listen").disabled = true;
+  btn.textContent = "示范中…";
+  const ok = await speakSyllableParts(item.char, item.pinyin, (step) => {
+    setSoundStep(step.key);
+  });
+  btn.disabled = false;
+  $("#btn-listen").disabled = false;
+  btn.textContent = "▶ 听组合示范";
+  if (!ok) {
+    feedback.hidden = false;
+    feedback.className = "feedback bad";
+    feedback.textContent = "组合示范失败，可改点「听这一步」。";
   }
 }
 
@@ -247,7 +340,7 @@ function onSpeak() {
     }
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 开始朗读";
+    btn.textContent = "🎤 读这一步";
     return;
   }
 
@@ -262,13 +355,18 @@ function onSpeak() {
     for (let i = 0; i < event.results[0].length; i++) {
       alts.push(event.results[0][i]);
     }
-    const result = scorePronunciation(alts, item.char, item.pinyin);
+    const result = scorePart(alts, {
+      mode: state.soundStep,
+      char: item.char,
+      pinyin: item.pinyin,
+      parts: state.soundParts,
+    });
     showPronounceResult(result);
   };
   recognition.onerror = (event) => {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 开始朗读";
+    btn.textContent = "🎤 读这一步";
     feedback.hidden = false;
     feedback.className = "feedback bad";
     const err = event?.error || "";
@@ -283,7 +381,7 @@ function onSpeak() {
   recognition.onend = () => {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 开始朗读";
+    btn.textContent = "🎤 读这一步";
   };
 
   try {
@@ -291,7 +389,7 @@ function onSpeak() {
   } catch {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 开始朗读";
+    btn.textContent = "🎤 读这一步";
   }
 }
 
@@ -304,13 +402,15 @@ function showPronounceResult(result) {
 
   feedback.hidden = false;
   if (result.pass) {
+    state.soundPassed[state.soundStep] = true;
     feedback.className = "feedback ok";
-    feedback.textContent = "读音通过！下面开始写笔画。";
-    $("#btn-skip-speak").hidden = true;
-    unlockStroke();
+    const names = { initial: "声母", final: "韵母", full: "整字" };
+    feedback.textContent = `${names[state.soundStep] || "这一步"}通过！`;
+    setSoundStep(state.soundStep);
+    setTimeout(() => advanceSoundStepOrUnlock(), 650);
   } else {
     feedback.className = "feedback bad";
-    feedback.textContent = "再听一遍标准音，尽量读准声调。";
+    feedback.textContent = "再听一遍，尽量读准；也可切换步骤练习。";
   }
 }
 
@@ -362,10 +462,17 @@ function init() {
   });
 
   $("#btn-listen").addEventListener("click", onListen);
+  $("#btn-listen-all").addEventListener("click", onListenAll);
   $("#btn-speak").addEventListener("click", onSpeak);
   $("#btn-skip-speak").addEventListener("click", () => unlockStroke());
   $("#btn-finish").addEventListener("click", () => openDone());
   $("#btn-next-char").addEventListener("click", nextCharacter);
+
+  $("#sound-steps")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".sound-step");
+    if (!btn || btn.hidden) return;
+    setSoundStep(btn.dataset.step);
+  });
 
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
@@ -373,6 +480,13 @@ function init() {
 
   const homeCredit = $("#home-credit");
   if (homeCredit) homeCredit.textContent = BOOK_SOURCE.credit;
+
+  const banner = $("#env-banner");
+  if (banner && isWeChat()) {
+    banner.hidden = false;
+    banner.textContent =
+      "正在微信中打开：朗读校准不可用。请点右上角 ··· → 在浏览器打开（推荐 Chrome）；也可先写笔画。";
+  }
 
   showScreen("home");
 }

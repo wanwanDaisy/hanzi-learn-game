@@ -4,13 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>字境 · 认识汉字</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+  <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="env-banner" class="env-banner" hidden role="status"></div>
   <div class="kai-preload" aria-hidden="true">一二三四五六七八九十百千万的了着过吗呢不也很最太都就和是有没在这那什么谁哪几怎为能会可要知道说话学习我你他她们人大小口目手足心耳头面牙发身男女子父母爸妈哥姐弟妹爷奶孩友老少好爱喜欢上下中左右前后里外东南西北来去回出进到看听吃喝睡走跑坐站飞玩买给用做打找拿放开关门家房车路书衣饭菜水日月山火木土石田天雨云风电星雪花草树叶果春夏秋冬江河海光明空地气阳红黄蓝绿白黑金鱼鸟马牛羊狗猫虫鸡鸭猪兔虎龙蛇猴熊象鼠蛙</div>
   <div class="atmosphere" aria-hidden="true">
     <div class="mist mist-a"></div>
@@ -62,10 +61,32 @@
             <span class="pinyin" id="pronounce-pinyin"></span>
             <span class="meaning" id="pronounce-meaning"></span>
           </div>
-          <p class="prompt sm">先听标准读音，再朗读校准</p>
+          <div class="syllable-split" id="syllable-split" aria-label="声母韵母">
+            <div class="syl-part" data-part="initial">
+              <span class="syl-label">声母</span>
+              <span class="syl-value" id="syl-initial">—</span>
+            </div>
+            <span class="syl-plus" aria-hidden="true">+</span>
+            <div class="syl-part" data-part="final">
+              <span class="syl-label">韵母</span>
+              <span class="syl-value" id="syl-final">—</span>
+            </div>
+            <span class="syl-plus" aria-hidden="true">=</span>
+            <div class="syl-part" data-part="full">
+              <span class="syl-label">整字</span>
+              <span class="syl-value" id="syl-full">—</span>
+            </div>
+          </div>
+          <div class="sound-steps" id="sound-steps" role="tablist" aria-label="读音步骤">
+            <button type="button" class="sound-step active" data-step="initial">① 声母</button>
+            <button type="button" class="sound-step" data-step="final">② 韵母</button>
+            <button type="button" class="sound-step" data-step="full">③ 组合</button>
+          </div>
+          <p class="prompt sm" id="pronounce-prompt">先听声母，再朗读校准</p>
           <div class="pronounce-actions">
-            <button type="button" class="btn secondary" id="btn-listen">▶ 听标准音</button>
-            <button type="button" class="btn primary" id="btn-speak">🎤 开始朗读</button>
+            <button type="button" class="btn secondary" id="btn-listen">▶ 听这一步</button>
+            <button type="button" class="btn ghost sm" id="btn-listen-all">▶ 听组合示范</button>
+            <button type="button" class="btn primary" id="btn-speak">🎤 读这一步</button>
           </div>
           <div class="meter" id="pronounce-meter" hidden>
             <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
