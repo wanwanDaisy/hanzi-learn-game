@@ -583,6 +583,8 @@ button {
 }
 
 .syl-part {
+  cursor: pointer;
+
   min-width: 4.2rem;
   padding: 0.45rem 0.55rem;
   border-radius: 12px;
@@ -928,3 +930,160 @@ button {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* Kid-friendly pronounce controls */
+
+.sound-step {
+  min-height: 2.6rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  border: 2px solid rgba(47, 122, 107, 0.22);
+  background: linear-gradient(180deg, #ffffff, #eef6f3);
+  color: var(--ink-soft);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 0 rgba(47, 122, 107, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.sound-step:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(47, 122, 107, 0.12);
+}
+
+.sound-step.active {
+  color: #fff;
+  background: linear-gradient(180deg, var(--jade-bright), var(--jade));
+  border-color: transparent;
+  box-shadow: 0 5px 0 rgba(26, 90, 78, 0.35);
+}
+
+.sound-step.passed:not(.active) {
+  color: var(--jade);
+  border-color: rgba(47, 122, 107, 0.4);
+  background: rgba(47, 122, 107, 0.1);
+}
+
+.kid-btn {
+  min-height: 3rem;
+  min-width: 7.5rem;
+  padding: 0.9rem 1.7rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 999px;
+}
+
+.btn.secondary.kid-btn {
+  background: linear-gradient(180deg, #fffdf8, #e7f3ef);
+  border: 2px solid rgba(47, 122, 107, 0.28);
+  color: var(--jade);
+  box-shadow: 0 6px 0 rgba(47, 122, 107, 0.16);
+}
+
+.btn.secondary.kid-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 rgba(47, 122, 107, 0.16);
+}
+
+.btn.primary.kid-btn {
+  background: linear-gradient(180deg, #3aa890, #2f7a6b);
+  border: 2px solid transparent;
+  box-shadow: 0 7px 0 rgba(26, 90, 78, 0.4);
+}
+
+.btn.primary.kid-btn:hover {
+  background: linear-gradient(180deg, #45b79a, #348978);
+}
+
+.btn.primary.kid-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 4px 0 rgba(26, 90, 78, 0.4);
+}
+
+.syl-part {
+  cursor: pointer;
+
+  min-width: 4.6rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 16px;
+}
+
+.syl-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.syl-value {
+  font-size: 1.45rem;
+}
+
+#btn-skip-speak {
+  margin-top: 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--jade);
+}
+
+
+
+
+/* Pronunciation guide under syllable split */
+.step-guide {
+  display: block;
+  margin: 0.45rem auto 0.95rem;
+  max-width: 22rem;
+  padding: 0.65rem 0.85rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(47, 122, 107, 0.08);
+  border: 1px solid rgba(47, 122, 107, 0.14);
+  text-align: left;
+}
+
+.step-guide-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--jade);
+}
+
+.step-guide[data-kind="final"] .step-guide-title {
+  color: #8a5a2b;
+}
+
+.step-guide[data-kind="full"] .step-guide-title {
+  color: var(--ink-soft);
+}
+
+.step-guide-body {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+
+
