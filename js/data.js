@@ -28,7 +28,7 @@ export const GROUPS = [
   { id: "school", name: "学习" },
 ];
 
-export const CHARACTERS = [
+const CHARACTERS_RAW = [
   // —— 学习 ——
   {
     id: "yi",
@@ -132,54 +132,6 @@ export const CHARACTERS = [
     pinyin: "wàn",
     group: "school",
     meaning: "一万",
-    strokeNames: [],
-  },
-  {
-    id: "de",
-    char: "的",
-    pinyin: "de",
-    group: "school",
-    meaning: "的",
-    strokeNames: [],
-  },
-  {
-    id: "le",
-    char: "了",
-    pinyin: "le",
-    group: "school",
-    meaning: "了",
-    strokeNames: [],
-  },
-  {
-    id: "zhe",
-    char: "着",
-    pinyin: "zhe",
-    group: "school",
-    meaning: "着",
-    strokeNames: [],
-  },
-  {
-    id: "guo",
-    char: "过",
-    pinyin: "guò",
-    group: "school",
-    meaning: "过",
-    strokeNames: [],
-  },
-  {
-    id: "ma",
-    char: "吗",
-    pinyin: "ma",
-    group: "school",
-    meaning: "吗",
-    strokeNames: [],
-  },
-  {
-    id: "ne",
-    char: "呢",
-    pinyin: "ne",
-    group: "school",
-    meaning: "呢",
     strokeNames: [],
   },
   {
@@ -300,14 +252,6 @@ export const CHARACTERS = [
     pinyin: "shén",
     group: "school",
     meaning: "什么",
-    strokeNames: [],
-  },
-  {
-    id: "me",
-    char: "么",
-    pinyin: "me",
-    group: "school",
-    meaning: "么",
     strokeNames: [],
   },
   {
@@ -461,14 +405,6 @@ export const CHARACTERS = [
     pinyin: "tā",
     group: "body",
     meaning: "她",
-    strokeNames: [],
-  },
-  {
-    id: "men",
-    char: "们",
-    pinyin: "men",
-    group: "body",
-    meaning: "们",
     strokeNames: [],
   },
   {
@@ -1635,6 +1571,13 @@ export const CHARACTERS = [
     strokeNames: [],
   },
 ];
+
+
+/** 轻声助词不入库（的/了/着/过/吗/呢/么/们…） */
+const LIGHT_TONE_CHARS = new Set(["的", "了", "着", "过", "吗", "呢", "么", "们", "啊", "吧", "嘛", "啦"]);
+
+// 兜底：即使旧缓存混入，运行时也剔除
+export const CHARACTERS = CHARACTERS_RAW.filter((c) => !LIGHT_TONE_CHARS.has(c.char));
 
 export function getCharacter(id) {
   return CHARACTERS.find((c) => c.id === id);

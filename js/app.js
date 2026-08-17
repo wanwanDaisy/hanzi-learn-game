@@ -1,15 +1,14 @@
-import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js";
-import { StrokeBoard } from "./stroke.js";
+import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js?v=20260817v";
+import { StrokeBoard } from "./stroke.js?v=20260817v";
 import {
-  speakText,
   speakSyllableParts,
   getRecognition,
   scorePart,
   getSpeechSupportInfo,
   isWeChat,
   splitPinyin,
-  SPEECH_RATE,
-} from "./pronounce.js";
+  getStepGuide,
+} from "./pronounce.js?v=20260817v";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -28,6 +27,19 @@ const state = {
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+const ICON_EAR = `<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 2a6 6 0 0 0-6 6v4.5c0 1.3.8 2.4 1.9 2.9l1.1.5V18a3 3 0 0 0 3 3h1a1 1 0 1 0 0-2h-1a1 1 0 0 1-1-1v-1.4l1.6-.7A4.5 4.5 0 0 0 15 12.5V8a3 3 0 0 1 6 0v1.2a1 1 0 1 0 2 0V8A5 5 0 0 0 13 2zm-2.2 8.8a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/></svg>`;
+const ICON_MOUTH = `<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 4c-4.2 0-7.5 2.1-8.7 5.2-.3.8.3 1.6 1.1 1.6h15.2c.8 0 1.4-.8 1.1-1.6C19.5 6.1 16.2 4 12 4zm-6.2 9.2c-.7 0-1.2.7-.9 1.3C6.3 17.3 8.9 20 12 20s5.7-2.7 7.1-5.5c.3-.6-.2-1.3-.9-1.3H5.8zM9.2 14.5h5.6c.4 0 .7.4.5.8-.5 1.1-1.7 2.2-3.3 2.2s-2.8-1.1-3.3-2.2c-.2-.4.1-.8.5-.8z"/></svg>`;
+
+function setListenBtnIdle(btn) {
+  if (!btn) return;
+  btn.innerHTML = `${ICON_EAR}<span>听一听</span>`;
+}
+
+function setSpeakBtnIdle(btn) {
+  if (!btn) return;
+  btn.innerHTML = `${ICON_MOUTH}<span>我来读</span>`;
+}
 
 function loadProgress() {
   try {
@@ -185,26 +197,47 @@ function setSoundStep(step) {
   if (!order.includes(step)) step = order[0];
   state.soundStep = step;
 
-  $$(".sound-step").forEach((btn) => {
-    const s = btn.dataset.step;
-    btn.hidden = s === "initial" && !parts?.hasInitial;
-    btn.classList.toggle("active", s === step);
-    btn.classList.toggle("passed", Boolean(state.soundPassed[s]));
-  });
+  const item = state.currentId ? getCharacter(state.currentId) : null;
+  const ini = parts?.initial || "";
+  const fin = parts?.finalPlain || "";
 
   $$(".syl-part").forEach((el) => {
     const p = el.dataset.part;
+    el.hidden = p === "initial" && !parts?.hasInitial;
     el.classList.toggle("active", p === step);
     el.classList.toggle("passed", Boolean(state.soundPassed[p]));
   });
 
+  const initialPart = document.querySelector('.syl-part[data-part="initial"]');
+  const plusAfterInitial = initialPart?.nextElementSibling;
+  if (plusAfterInitial?.classList.contains("syl-plus")) {
+    plusAfterInitial.hidden = !parts?.hasInitial;
+  }
+
   const labels = {
-    initial: `先听声母「${parts?.initial || ""}」，再朗读`,
-    final: `再听韵母「${parts?.final || ""}」，再朗读`,
-    full: `最后听整字组合「${parts ? getCharacter(state.currentId).pinyin : ""}」，再朗读`,
+    initial: ini ? `读声母 ${ini}` : "读声母",
+    final: fin ? `读韵母 ${fin}` : "读韵母",
+    full: `拼一拼，读「${item?.char || ""}」`,
   };
   const prompt = $("#pronounce-prompt");
-  if (prompt) prompt.textContent = labels[step] || "听标准音后朗读校准";
+  if (prompt) prompt.textContent = labels[step] || "先听一听，再跟着读";
+
+  const guideBox = $("#step-guide");
+  const guideTitle = $("#guide-title");
+  const guideBody = $("#guide-body");
+  if (guideBox && guideTitle && guideBody) {
+    const guide = getStepGuide(step, parts, item?.char);
+    if (guide) {
+      guideBox.hidden = false;
+      guideBox.dataset.kind = guide.kind;
+      guideTitle.textContent = guide.title;
+      guideBody.textContent = guide.body;
+    } else {
+      guideBox.hidden = true;
+      guideTitle.textContent = "";
+      guideBody.textContent = "";
+    }
+  }
 }
 
 function advanceSoundStepOrUnlock() {
@@ -233,16 +266,15 @@ function openPractice() {
   $("#pronounce-pinyin").textContent = item.pinyin;
   $("#pronounce-meaning").textContent = item.meaning;
   $("#syl-initial").textContent = state.soundParts.hasInitial ? state.soundParts.initial : "（无）";
-  $("#syl-final").textContent = state.soundParts.final || "—";
+  $("#syl-final").textContent = state.soundParts.finalPlain || "—";
   $("#syl-full").textContent = item.pinyin;
   $("#pronounce-feedback").hidden = true;
   $("#pronounce-meter").hidden = true;
   $("#meter-fill").style.width = "0%";
   $("#btn-speak").classList.remove("listening");
-  $("#btn-speak").textContent = "🎤 读这一步";
+  setSpeakBtnIdle($("#btn-speak"));
   $("#btn-skip-speak").hidden = false;
   $("#btn-finish").hidden = true;
-  $("#btn-listen").textContent = "▶ 听这一步";
 
   const support = getSpeechSupportInfo();
   $("#mic-note").textContent = support.browserTip;
@@ -254,7 +286,14 @@ function openPractice() {
   if (support.wechat) {
     skip.textContent = "先写字（可稍后再读）";
   } else {
-    skip.textContent = support.recognition ? "已会读，开始写字" : "听完了，开始写字";
+    skip.textContent = support.recognition ? "会读了，去写字" : "听完了，去写字";
+  }
+
+  // Chrome：默认展示三步，并自动播一遍组合示范更易发现功能
+  const tip = $("#mic-note");
+  if (support.recognition && tip) {
+    tip.textContent =
+      "先点「听一听」，跟着读声母、韵母，再拼成整字哦。需要麦克风权限。";
   }
 
   if (!support.tts) {
@@ -268,54 +307,29 @@ function openPractice() {
   showScreen("practice");
 }
 
-function currentStepSpeakTarget(item) {
-  const parts = state.soundParts;
-  const step = state.soundStep;
-  if (step === "initial") {
-    return { text: parts.initialDemo || parts.initial, mode: "initial" };
-  }
-  if (step === "final") {
-    return { text: parts.finalPlain || parts.final, mode: "final" };
-  }
-  return { text: item.char, mode: "full" };
-}
-
-async function onListen() {
-  const item = getCharacter(state.currentId);
-  const btn = $("#btn-listen");
-  const feedback = $("#pronounce-feedback");
-  btn.disabled = true;
-  btn.textContent = "朗读中…";
-  const target = currentStepSpeakTarget(item);
-  const ok = await speakText(target.text, { rate: SPEECH_RATE });
-  btn.disabled = false;
-  btn.textContent = "▶ 听这一步";
-  if (!ok) {
-    feedback.hidden = false;
-    feedback.className = "feedback bad";
-    feedback.textContent = isWeChat()
-      ? "微信内常无法播报。请看拼音跟读，或点下方按钮直接写字；完整读音请用浏览器打开。"
-      : "播报失败。请确认设备未静音；也可直接点下方按钮继续写字。";
-  }
-}
-
 async function onListenAll() {
   const item = getCharacter(state.currentId);
   const btn = $("#btn-listen-all");
   const feedback = $("#pronounce-feedback");
   btn.disabled = true;
-  $("#btn-listen").disabled = true;
-  btn.textContent = "示范中…";
+  btn.textContent = "正在读给你听…";
+  const prompt = $("#pronounce-prompt");
   const ok = await speakSyllableParts(item.char, item.pinyin, (step) => {
+    if (step.phase === "preview") {
+      if (prompt) prompt.textContent = `先听整字「${item.char}」怎么读`;
+      const g = $("#step-guide");
+      if (g) g.hidden = true;
+      $$(".syl-part").forEach((el) => el.classList.toggle("active", el.dataset.part === "full"));
+      return;
+    }
     setSoundStep(step.key);
   });
   btn.disabled = false;
-  $("#btn-listen").disabled = false;
-  btn.textContent = "▶ 听组合示范";
+  setListenBtnIdle(btn);
   if (!ok) {
     feedback.hidden = false;
     feedback.className = "feedback bad";
-    feedback.textContent = "组合示范失败，可改点「听这一步」。";
+    feedback.textContent = "组合示范失败，请确认未静音后重试。";
   }
 }
 
@@ -340,13 +354,13 @@ function onSpeak() {
     }
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 读这一步";
+    setSpeakBtnIdle(btn);
     return;
   }
 
   state.recognizing = true;
   btn.classList.add("listening");
-  btn.textContent = "正在听… 再点可取消";
+  btn.textContent = "正在听你读…";
   feedback.hidden = true;
 
   const recognition = getRecognition();
@@ -366,7 +380,7 @@ function onSpeak() {
   recognition.onerror = (event) => {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 读这一步";
+    setSpeakBtnIdle(btn);
     feedback.hidden = false;
     feedback.className = "feedback bad";
     const err = event?.error || "";
@@ -381,7 +395,7 @@ function onSpeak() {
   recognition.onend = () => {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 读这一步";
+    setSpeakBtnIdle(btn);
   };
 
   try {
@@ -389,7 +403,7 @@ function onSpeak() {
   } catch {
     state.recognizing = false;
     btn.classList.remove("listening");
-    btn.textContent = "🎤 读这一步";
+    setSpeakBtnIdle(btn);
   }
 }
 
@@ -404,13 +418,12 @@ function showPronounceResult(result) {
   if (result.pass) {
     state.soundPassed[state.soundStep] = true;
     feedback.className = "feedback ok";
-    const names = { initial: "声母", final: "韵母", full: "整字" };
-    feedback.textContent = `${names[state.soundStep] || "这一步"}通过！`;
+    feedback.textContent = state.soundStep === "full" ? "拼对啦！真棒！" : "读得真好！继续下一步～";
     setSoundStep(state.soundStep);
     setTimeout(() => advanceSoundStepOrUnlock(), 650);
   } else {
     feedback.className = "feedback bad";
-    feedback.textContent = "再听一遍，尽量读准；也可切换步骤练习。";
+    feedback.textContent = "再听一听，慢慢读，你可以的！";
   }
 }
 
@@ -461,17 +474,16 @@ function init() {
     if (state.strokeReady) ensureBoard().playDemo();
   });
 
-  $("#btn-listen").addEventListener("click", onListen);
   $("#btn-listen-all").addEventListener("click", onListenAll);
   $("#btn-speak").addEventListener("click", onSpeak);
   $("#btn-skip-speak").addEventListener("click", () => unlockStroke());
   $("#btn-finish").addEventListener("click", () => openDone());
   $("#btn-next-char").addEventListener("click", nextCharacter);
 
-  $("#sound-steps")?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".sound-step");
-    if (!btn || btn.hidden) return;
-    setSoundStep(btn.dataset.step);
+  $("#syllable-split")?.addEventListener("click", (e) => {
+    const part = e.target.closest(".syl-part");
+    if (!part || part.hidden) return;
+    setSoundStep(part.dataset.part);
   });
 
   if (window.speechSynthesis) {
