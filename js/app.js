@@ -1,6 +1,11 @@
 import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js";
 import { StrokeBoard } from "./stroke.js";
-import { speakCharacter, getRecognition, scorePronunciation } from "./pronounce.js";
+import {
+  speakCharacter,
+  getRecognition,
+  scorePronunciation,
+  getSpeechSupportInfo,
+} from "./pronounce.js";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -178,10 +183,28 @@ function openPractice() {
   $("#btn-skip-speak").hidden = false;
   $("#btn-finish").hidden = true;
 
-  const rec = getRecognition();
-  $("#mic-note").textContent = rec
-    ? "朗读需浏览器麦克风权限（建议 Chrome）。听标准音后，清晰读出该字。"
-    : "当前浏览器不支持语音识别。请听标准音练习，然后点「已会读，开始写字」。";
+  const support = getSpeechSupportInfo();
+  $("#mic-note").textContent = support.browserTip;
+  $("#block-pronounce").dataset.mode = support.recognition ? "mic" : "listen-only";
+
+  // 无语音识别时：隐藏朗读按钮，把「已会读」提升为主按钮
+  $("#btn-speak").hidden = !support.recognition;
+  const skip = $("#btn-skip-speak");
+  skip.className = support.recognition ? "btn ghost" : "btn primary";
+  skip.textContent = support.recognition ? "已会读，开始写字" : "听完了，开始写字";
+
+  const prompt = $("#block-pronounce .prompt");
+  if (prompt) {
+    prompt.textContent = support.recognition
+      ? "先听标准读音，再朗读校准"
+      : "先听标准读音，跟读练习后继续写字";
+  }
+
+  if (!support.tts) {
+    $("#pronounce-feedback").hidden = false;
+    $("#pronounce-feedback").className = "feedback bad";
+    $("#pronounce-feedback").textContent = "当前浏览器不支持播报读音，可直接点下方按钮进入写字。";
+  }
 
   setStrokeLocked(true);
   showScreen("practice");
@@ -190,17 +213,17 @@ function openPractice() {
 async function onListen() {
   const item = getCharacter(state.currentId);
   const btn = $("#btn-listen");
+  const feedback = $("#pronounce-feedback");
   btn.disabled = true;
   btn.textContent = "朗读中…";
-  if (window.speechSynthesis && !window.speechSynthesis.getVoices().length) {
-    await new Promise((r) => {
-      window.speechSynthesis.onvoiceschanged = r;
-      setTimeout(r, 300);
-    });
-  }
-  await speakCharacter(item.char, item.pinyin);
+  const ok = await speakCharacter(item.char, item.pinyin);
   btn.disabled = false;
   btn.textContent = "▶ 听标准音";
+  if (!ok) {
+    feedback.hidden = false;
+    feedback.className = "feedback bad";
+    feedback.textContent = "播报失败。请确认设备未静音；也可直接点下方按钮继续写字。";
+  }
 }
 
 function onSpeak() {
@@ -242,13 +265,20 @@ function onSpeak() {
     const result = scorePronunciation(alts, item.char, item.pinyin);
     showPronounceResult(result);
   };
-  recognition.onerror = () => {
+  recognition.onerror = (event) => {
     state.recognizing = false;
     btn.classList.remove("listening");
     btn.textContent = "🎤 开始朗读";
     feedback.hidden = false;
     feedback.className = "feedback bad";
-    feedback.textContent = "没听清，请靠近麦克风再试一次。";
+    const err = event?.error || "";
+    if (err === "not-allowed" || err === "service-not-allowed") {
+      feedback.textContent = "未获得麦克风权限。请在浏览器设置中允许，或改用「已会读，开始写字」。";
+    } else if (err === "network") {
+      feedback.textContent = "语音识别需要联网。请检查网络，或改用「已会读，开始写字」。";
+    } else {
+      feedback.textContent = "没听清或当前浏览器识别不稳定。可再试，或点「已会读，开始写字」。";
+    }
   };
   recognition.onend = () => {
     state.recognizing = false;
