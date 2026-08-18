@@ -1576,8 +1576,72 @@ const CHARACTERS_RAW = [
 /** 轻声助词不入库（的/了/着/过/吗/呢/么/们…） */
 const LIGHT_TONE_CHARS = new Set(["的", "了", "着", "过", "吗", "呢", "么", "们", "啊", "吧", "嘛", "啦"]);
 
-// 兜底：即使旧缓存混入，运行时也剔除
-export const CHARACTERS = CHARACTERS_RAW.filter((c) => !LIGHT_TONE_CHARS.has(c.char));
+/**
+ * 与 BV1RrySBCEmt《汉语拼音跟我读一读》屏幕韵母表一致的 24 个韵母。
+ * 不含 ian/uo/iao/uang 等扩展拼写；字库只保留可用该表拼出的字。
+ */
+const CHART_FINALS = new Set([
+  "a", "o", "e", "i", "u", "v",
+  "ai", "ei", "ui", "ao", "ou", "iu", "ie", "ve", "er",
+  "an", "en", "in", "un", "vn",
+  "ang", "eng", "ing", "ong",
+]);
+
+const CHART_INITIALS = [
+  "zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l",
+  "g", "k", "h", "j", "q", "x", "r", "z", "c", "s", "y", "w",
+];
+
+function stripTonePlain(pinyin) {
+  return String(pinyin || "")
+    .replace(/[ǖǘǚǜü]/g, "v")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[āáǎà]/g, "a")
+    .replace(/[ēéěè]/g, "e")
+    .replace(/[īíǐì]/g, "i")
+    .replace(/[ōóǒò]/g, "o")
+    .replace(/[ūúǔù]/g, "u")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+}
+
+function chartFinalKey(finalPlain, initial) {
+  let f = (finalPlain || "").toLowerCase().replace(/ü/g, "v");
+  const aliases = { ue: "ve", üe: "ve", ün: "vn", uen: "un", uei: "ui", iou: "iu" };
+  f = aliases[f] || f;
+  // j/q/x/y 后的 u = ü
+  if ((initial === "j" || initial === "q" || initial === "x") && f.startsWith("u") && !f.startsWith("uo")) {
+    f = `v${f.slice(1)}`;
+  }
+  if (initial === "y" && f.startsWith("u") && f !== "ou") {
+    f = `v${f.slice(1)}`;
+  }
+  return f;
+}
+
+/** 音节的声母+韵母是否落在视频字表内 */
+function isChartSyllable(pinyin) {
+  let plain = stripTonePlain(pinyin);
+  if (!plain) return false;
+  let initial = "";
+  for (const ini of CHART_INITIALS) {
+    if (plain.startsWith(ini)) {
+      initial = ini;
+      plain = plain.slice(ini.length) || plain;
+      break;
+    }
+  }
+  const finalKey = chartFinalKey(plain, initial);
+  if (!CHART_FINALS.has(finalKey)) return false;
+  if (initial && !CHART_INITIALS.includes(initial)) return false;
+  return true;
+}
+
+// 兜底：剔除轻声助词 + 非视频字表组合
+export const CHARACTERS = CHARACTERS_RAW.filter(
+  (c) => !LIGHT_TONE_CHARS.has(c.char) && isChartSyllable(c.pinyin)
+);
 
 export function getCharacter(id) {
   return CHARACTERS.find((c) => c.id === id);

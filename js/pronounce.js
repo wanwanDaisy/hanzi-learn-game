@@ -6,6 +6,7 @@ export const DEMO_RATE = 0.16;
 
 function stripTone(pinyin) {
   return pinyin
+    .replace(/[ǖǘǚǜü]/g, "v")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[āáǎà]/g, "a")
@@ -13,9 +14,19 @@ function stripTone(pinyin) {
     .replace(/[īíǐì]/g, "i")
     .replace(/[ōóǒò]/g, "o")
     .replace(/[ūúǔù]/g, "u")
-    .replace(/[ǖǘǚǜü]/g, "v")
     .toLowerCase()
     .replace(/[^a-z]/g, "");
+}
+
+/** 界面展示用：v → ü（j/q/x/y 后的 u 也按 ü 显示） */
+export function displayFinal(finalPlain) {
+  const f = (finalPlain || "").toLowerCase();
+  if (!f) return "";
+  return f
+    .replace(/^van$/, "üan")
+    .replace(/^vn$/, "ün")
+    .replace(/^ve$/, "üe")
+    .replace(/^v/, "ü");
 }
 
 /**
@@ -208,14 +219,14 @@ export function getStepGuide(step, parts, char) {
     const fin = parts?.finalPlain || "";
     const tip = getFinalTip(fin);
     if (!tip) return null;
-    return { kind: "final", title: `韵母 ${fin} 的发音指导`, body: tip };
+    return { kind: "final", title: `韵母 ${displayFinal(fin)} 的发音指导`, body: tip };
   }
   if (step === "full") {
     const ini = parts?.hasInitial ? parts.initial : "";
     const fin = parts?.finalPlain || "";
     const body = ini
-      ? `先发声母 ${ini}，再接韵母 ${fin}，一口气拼成「${char || ""}」`
-      : `直接读韵母 ${fin}，拼成「${char || ""}」`;
+      ? `先发声母 ${ini}，再接韵母 ${displayFinal(fin)}，一口气拼成「${char || ""}」`
+      : `直接读韵母 ${displayFinal(fin)}，拼成「${char || ""}」`;
     return { kind: "full", title: "拼读指导", body };
   }
   return null;
@@ -360,11 +371,20 @@ export function splitPinyin(pinyin) {
     final = raw;
   }
 
+  // j/q/x/y 后的 u 实际是 ü（you 除外）
+  if (["j", "q", "x"].includes(initial) && finalPlain.startsWith("u") && !finalPlain.startsWith("uo")) {
+    finalPlain = `v${finalPlain.slice(1)}`;
+  }
+  if (initial === "y" && finalPlain.startsWith("u") && finalPlain !== "ou") {
+    finalPlain = `v${finalPlain.slice(1)}`;
+  }
+
   return {
     initial,
     final,
     initialPlain: initial,
     finalPlain,
+    finalDisplay: displayFinal(finalPlain),
     initialDemo: initial ? INITIAL_DEMO_LATIN[initial] || initial : "",
     initialDemoChar: initial ? INITIAL_DEMO_CHAR[initial] || "" : "",
     finalDemoChar: FINAL_DEMO_CHAR[finalPlain] || "",
@@ -623,8 +643,11 @@ function initialDemoRate(initial) {
 
 
 /**
- * 声母/韵母示范：截自 bilibili 课堂口型视频（统一预录，避免 Chrome TTS 读歪）
- * 声母：BV1Di4y117Cj《声母表》；韵母：BV1Xm4y1R7c3《24个韵母》
+ * 读音示范音源：
+ * - 声母：主持人小史 BV1nUUhYHESM《练好声母是发音标准的第一步》预录
+ * - 韵母：BV1Xm4y1R7c3《24个韵母正确发音及发音口型》预录
+ * - 整字：系统 TTS
+ * 字表范围仍对齐 BV1RrySBCEmt 屏幕 23+24；课堂汉字作 TTS 回退，避免拉丁字母读成英文。
  */
 const INITIAL_AUDIO = Object.fromEntries(
   ["b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s","y","w"].map(
@@ -638,7 +661,6 @@ const FINAL_AUDIO = Object.fromEntries(
   )
 );
 
-/** 把 finalPlain 映射到预录韵母文件名（仅 24 个单韵母表） */
 function finalAudioKey(finalPlain) {
   let f = (finalPlain || "").toLowerCase().replace(/ü/g, "v");
   if (!f) return "";

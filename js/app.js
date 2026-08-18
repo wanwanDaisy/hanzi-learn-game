@@ -1,5 +1,5 @@
-import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js?v=20260817v";
-import { StrokeBoard } from "./stroke.js?v=20260817v";
+import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js?v=20260818c";
+import { StrokeBoard } from "./stroke.js?v=20260818c";
 import {
   speakSyllableParts,
   getRecognition,
@@ -8,7 +8,8 @@ import {
   isWeChat,
   splitPinyin,
   getStepGuide,
-} from "./pronounce.js?v=20260817v";
+  displayFinal,
+} from "./pronounce.js?v=20260818c";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -266,7 +267,7 @@ function openPractice() {
   $("#pronounce-pinyin").textContent = item.pinyin;
   $("#pronounce-meaning").textContent = item.meaning;
   $("#syl-initial").textContent = state.soundParts.hasInitial ? state.soundParts.initial : "（无）";
-  $("#syl-final").textContent = state.soundParts.finalPlain || "—";
+  $("#syl-final").textContent = displayFinal(state.soundParts.finalPlain) || "—";
   $("#syl-full").textContent = item.pinyin;
   $("#pronounce-feedback").hidden = true;
   $("#pronounce-meter").hidden = true;
