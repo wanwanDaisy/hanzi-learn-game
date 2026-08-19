@@ -6,11 +6,11 @@
   <title>字境 · 认识汉字</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20260818c" />
+  <link rel="stylesheet" href="styles.css?v=20260819o" />
 </head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
-  <div class="kai-preload" aria-hidden="true">一二三四五六七八九十百千万不也很最太都就和是有没在这那什谁哪几怎为能会可要知道说话学习我你他她人大小口目手足心耳头面牙发身男女子父母爸妈哥姐弟妹爷奶孩友老少好爱喜欢上下中左右前后里外东南西北来去回出进到看听吃喝睡走跑坐站飞玩买给用做打找拿放开关门家房车路书衣饭菜水日月山火木土石田天雨云风电星雪花草树叶果春夏秋冬江河海光明空地气阳红黄蓝绿白黑金鱼鸟马牛羊狗猫虫鸡鸭猪兔虎龙蛇猴熊象鼠蛙</div>
+  <div class="kai-preload" aria-hidden="true">一二三四五六七八九十百万不也很最太都就和是有没在这那什谁哪几怎为能会可要知道学习我你他她人大口目手足心耳头牙发身男女子父母爸妈哥姐弟妹爷奶孩友老少好爱喜上中右后里外东南西北来去回出进到看听吃喝睡走跑站飞玩买给用打找拿放开门房车路书衣饭菜水日月山木土石雨云风星雪草树叶春秋冬河海明空地气阳红蓝绿白黑金鱼马牛羊狗猫虫鸡鸭猪兔虎龙蛇猴鼠蛙字文正词句课本笔纸写读认诗歌数问答题考试师班同新旧长高低慢早今岁才又再还只把被从椅灯杯勺米包肉蛋糖油茶酒饿饱热冷温清洗澡服帽鞋袜裤袋卖市工事业忙休息病医药雷冰雾露沙尘湖溪城村林森竹松柳桃梨杏豆蔬蜂蝶蚁蛛龟鲸鹅鸽鹰鸦雀狮狼狐鹿驴蚕蝇蚊蟹蝌蚪豹王李张刘陈杨赵周吴徐孙朱胡郑</div>
   <div class="atmosphere" aria-hidden="true">
     <div class="mist mist-a"></div>
     <div class="mist mist-b"></div>
@@ -24,10 +24,11 @@
         <p class="seal" aria-hidden="true">识</p>
         <h1 class="brand">字境</h1>
         <p class="tagline">读准音 · 写好字</p>
-        <button type="button" class="btn primary" id="btn-start">开始识字</button>
+        <div class="home-actions">
+          <button type="button" class="btn primary" id="btn-start">开始识字</button>
+        </div>
       </header>
       <p class="home-hint">每字一关：先读音，再写笔画</p>
-      <p class="book-credit" id="home-credit"></p>
     </section>
 
     <!-- Character select -->
@@ -38,11 +39,8 @@
       </header>
       <div class="group-tabs" id="group-tabs" role="tablist" aria-label="字库分类"></div>
       <p class="select-meta" id="select-meta"></p>
-      <p class="book-credit select-credit" id="select-credit"></p>
       <div class="char-grid" id="char-grid"></div>
     </section>
-
-    
 
     <!-- Practice: pronounce then stroke -->
     <section class="screen" id="screen-practice" data-screen="practice">
@@ -132,6 +130,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20260818c"></script>
+  <script type="module" src="js/app.js?v=20260819o"></script>
 </body>
 </html>

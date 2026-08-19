@@ -109,7 +109,7 @@ const INITIAL_DEMO_TTS = {
   zh: "知",
   ch: "吃",
   sh: "诗",
-  r: "rī",
+  r: "日",
   z: "资",
   c: "疵",
   s: "思",
@@ -575,6 +575,7 @@ export function finalSpeakText(finalPlain) {
 export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitch = 1 } = {}) {
   if (!window.speechSynthesis || !text) return false;
 
+  stopDemoAudio();
   await waitForVoices();
   window.speechSynthesis.cancel();
   try {
@@ -644,20 +645,19 @@ function initialDemoRate(initial) {
 
 /**
  * 读音示范音源：
- * - 声母：主持人小史 BV1nUUhYHESM《练好声母是发音标准的第一步》预录
+ * - 声母：主持人小史 BV1nUUhYHESM，按用户标定时间切两遍呼读中的一遍（y/w 未标定，仍用 TTS）
  * - 韵母：BV1Xm4y1R7c3《24个韵母正确发音及发音口型》预录
  * - 整字：系统 TTS
- * 字表范围仍对齐 BV1RrySBCEmt 屏幕 23+24；课堂汉字作 TTS 回退，避免拉丁字母读成英文。
  */
 const INITIAL_AUDIO = Object.fromEntries(
-  ["b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s","y","w"].map(
-    (k) => [k, `audio/initial-${k}.m4a`]
+  ["b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s"].map(
+    (k) => [k, `audio/initial-${k}.m4a?v=20260819n`]
   )
 );
 
 const FINAL_AUDIO = Object.fromEntries(
   ["a","o","e","i","u","v","ai","ei","ui","ao","ou","iu","ie","ve","er","an","en","in","un","vn","ang","eng","ing","ong"].map(
-    (k) => [k, `audio/final-${k}.m4a`]
+    (k) => [k, `audio/final-${k}.m4a?v=20260818`]
   )
 );
 
@@ -679,22 +679,39 @@ function finalAudioKey(finalPlain) {
 }
 
 let currentDemoAudio = null;
+let playTimer = null;
+let playGen = 0;
+
+export function stopDemoAudio() {
+  playGen += 1;
+  if (playTimer) {
+    clearTimeout(playTimer);
+    playTimer = null;
+  }
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* ignore */
+  }
+  if (!currentDemoAudio) return;
+  const a = currentDemoAudio;
+  currentDemoAudio = null;
+  a.onended = null;
+  a.onerror = null;
+  a._abort = null;
+  try {
+    a.pause();
+    a.removeAttribute("src");
+    a.load();
+  } catch {
+    /* ignore */
+  }
+}
 
 function playAudio(src) {
   return new Promise((resolve) => {
-    try {
-      window.speechSynthesis?.cancel();
-    } catch {
-      /* ignore */
-    }
-    if (currentDemoAudio) {
-      try {
-        currentDemoAudio.pause();
-      } catch {
-        /* ignore */
-      }
-      currentDemoAudio = null;
-    }
+    stopDemoAudio();
+    const gen = playGen;
     const a = new Audio(src);
     currentDemoAudio = a;
     a.preload = "auto";
@@ -702,13 +719,17 @@ function playAudio(src) {
     const finish = (ok) => {
       if (done) return;
       done = true;
+      if (playTimer) {
+        clearTimeout(playTimer);
+        playTimer = null;
+      }
       if (currentDemoAudio === a) currentDemoAudio = null;
-      resolve(ok);
+      resolve(ok && gen === playGen);
     };
     a.onended = () => finish(true);
     a.onerror = () => finish(false);
     a.play().catch(() => finish(false));
-    setTimeout(() => finish(true), 4000);
+    playTimer = setTimeout(() => finish(true), 2500);
   });
 }
 
@@ -736,6 +757,60 @@ export async function speakSoundStep(stepKey, char, pinyin) {
     return speakText(text, { rate: DEMO_RATE });
   }
   return speakText(char, { rate: DEMO_RATE });
+}
+
+export const CHART_INITIAL_KEYS = [
+  "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x",
+  "zh", "ch", "sh", "r", "z", "c", "s", "y", "w",
+];
+
+export const CHART_FINAL_ITEMS = [
+  { key: "a", label: "a" },
+  { key: "o", label: "o" },
+  { key: "e", label: "e" },
+  { key: "i", label: "i" },
+  { key: "u", label: "u" },
+  { key: "v", label: "ü" },
+  { key: "ai", label: "ai" },
+  { key: "ei", label: "ei" },
+  { key: "ui", label: "ui" },
+  { key: "ao", label: "ao" },
+  { key: "ou", label: "ou" },
+  { key: "iu", label: "iu" },
+  { key: "ie", label: "ie" },
+  { key: "ve", label: "üe" },
+  { key: "er", label: "er" },
+  { key: "an", label: "an" },
+  { key: "en", label: "en" },
+  { key: "in", label: "in" },
+  { key: "un", label: "un" },
+  { key: "vn", label: "ün" },
+  { key: "ang", label: "ang" },
+  { key: "eng", label: "eng" },
+  { key: "ing", label: "ing" },
+  { key: "ong", label: "ong" },
+];
+
+/** 字表核对：直接播预录，失败再 TTS */
+export async function playChartSound(kind, key) {
+  if (kind === "initial") {
+    if (INITIAL_AUDIO[key]) {
+      const ok = await playAudio(INITIAL_AUDIO[key]);
+      if (ok) return true;
+    }
+    const dummy = key === "y" ? "yī" : key === "w" ? "wū" : `${key}ā`;
+    return speakSoundStep("initial", "", dummy);
+  }
+  if (kind === "final") {
+    const audioKey = finalAudioKey(key);
+    if (audioKey && FINAL_AUDIO[audioKey]) {
+      const ok = await playAudio(FINAL_AUDIO[audioKey]);
+      if (ok) return true;
+    }
+    const dummy = key === "v" ? "ü" : key;
+    return speakSoundStep("final", "", dummy);
+  }
+  return false;
 }
 
 /**

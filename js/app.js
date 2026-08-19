@@ -1,5 +1,5 @@
-import { CHARACTERS, GROUPS, BOOK_SOURCE, getCharacter, charactersByGroup } from "./data.js?v=20260818c";
-import { StrokeBoard } from "./stroke.js?v=20260818c";
+import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819o";
+import { StrokeBoard } from "./stroke.js?v=20260819o";
 import {
   speakSyllableParts,
   getRecognition,
@@ -9,7 +9,8 @@ import {
   splitPinyin,
   getStepGuide,
   displayFinal,
-} from "./pronounce.js?v=20260818c";
+  stopDemoAudio,
+} from "./pronounce.js?v=20260819o";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -85,8 +86,6 @@ function renderSelect() {
   const list = charactersByGroup(state.group);
   const doneCount = list.filter((c) => state.completed.includes(c.id)).length;
   $("#select-meta").textContent = `楷书字库 · ${list.length} 字 · 已通关 ${doneCount}`;
-  const credit = $("#select-credit");
-  if (credit) credit.textContent = BOOK_SOURCE.credit;
 
   const grid = $("#char-grid");
   grid.innerHTML = list
@@ -490,9 +489,6 @@ function init() {
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
   }
-
-  const homeCredit = $("#home-credit");
-  if (homeCredit) homeCredit.textContent = BOOK_SOURCE.credit;
 
   const banner = $("#env-banner");
   if (banner && isWeChat()) {
