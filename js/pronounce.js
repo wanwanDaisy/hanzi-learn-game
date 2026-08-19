@@ -1,8 +1,10 @@
 /** 读音：标准朗读 + 声母/韵母/整字校准 */
 
-/** 组合示范专用更慢语速（Chrome 中文朗读） */
-export const SPEECH_RATE = 0.18;
+/** 跟读示范：声母预录放慢；韵母预录保持原速；整字 TTS 慢速 */
+export const SPEECH_RATE = 0.16;
 export const DEMO_RATE = 0.16;
+const INITIAL_CLIP_RATE = 0.65;
+const FINAL_CLIP_RATE = 1;
 
 function stripTone(pinyin) {
   return pinyin
@@ -146,9 +148,6 @@ const INITIAL_TIP = {
   y: "零声母：口形像「衣」，起音轻短",
   w: "零声母：嘴唇拢圆，像「乌」",
 };
-
-/** 不送气塞音/塞擦音：呼读宜轻短 */
-const INITIAL_LIGHT_SHORT = new Set(["b", "d", "g", "z", "zh", "j"]);
 
 export function getInitialTip(initial) {
   return INITIAL_TIP[initial] || "";
@@ -636,13 +635,6 @@ export function partSpeakText(stepKey, parts) {
   return "";
 }
 
-/** 声母示范语速：不送气宜更轻短，送气/擦音稍慢听清气流 */
-function initialDemoRate(initial) {
-  if (INITIAL_LIGHT_SHORT.has(initial)) return Math.min(DEMO_RATE * 1.35, 0.28);
-  return DEMO_RATE;
-}
-
-
 /**
  * 读音示范音源：
  * - 声母：主持人小史 BV1nUUhYHESM，按用户标定时间切两遍呼读中的一遍（y/w 未标定，仍用 TTS）
@@ -708,13 +700,28 @@ export function stopDemoAudio() {
   }
 }
 
-function playAudio(src) {
+function applyClipRate(a, rate) {
+  a.preservesPitch = true;
+  a.webkitPreservesPitch = true;
+  a.mozPreservesPitch = true;
+  a.defaultPlaybackRate = rate;
+  a.playbackRate = rate;
+}
+
+function clipTimeoutMs(a, rate) {
+  const dur = Number(a.duration);
+  if (!Number.isFinite(dur) || dur <= 0) return 4500;
+  return Math.ceil((dur / rate) * 1000) + 600;
+}
+
+function playAudio(src, rate = INITIAL_CLIP_RATE) {
   return new Promise((resolve) => {
     stopDemoAudio();
     const gen = playGen;
     const a = new Audio(src);
     currentDemoAudio = a;
     a.preload = "auto";
+    applyClipRate(a, rate);
     let done = false;
     const finish = (ok) => {
       if (done) return;
@@ -726,10 +733,20 @@ function playAudio(src) {
       if (currentDemoAudio === a) currentDemoAudio = null;
       resolve(ok && gen === playGen);
     };
+    const armTimeout = () => {
+      if (done || gen !== playGen) return;
+      if (playTimer) clearTimeout(playTimer);
+      playTimer = setTimeout(() => finish(true), clipTimeoutMs(a, rate));
+    };
+    a.onloadedmetadata = () => {
+      applyClipRate(a, rate);
+      armTimeout();
+    };
+    a.onplaying = () => applyClipRate(a, rate);
     a.onended = () => finish(true);
     a.onerror = () => finish(false);
     a.play().catch(() => finish(false));
-    playTimer = setTimeout(() => finish(true), 2500);
+    armTimeout();
   });
 }
 
@@ -744,12 +761,12 @@ export async function speakSoundStep(stepKey, char, pinyin) {
     }
     const text = partSpeakText("initial", parts);
     if (!text) return true;
-    return speakText(text, { rate: initialDemoRate(ini) });
+    return speakText(text, { rate: DEMO_RATE });
   }
   if (stepKey === "final") {
     const key = finalAudioKey(parts.finalPlain || stripTone(parts.final || ""));
     if (key && FINAL_AUDIO[key]) {
-      const ok = await playAudio(FINAL_AUDIO[key]);
+      const ok = await playAudio(FINAL_AUDIO[key], FINAL_CLIP_RATE);
       if (ok) return true;
     }
     const text = partSpeakText("final", parts);
@@ -804,7 +821,7 @@ export async function playChartSound(kind, key) {
   if (kind === "final") {
     const audioKey = finalAudioKey(key);
     if (audioKey && FINAL_AUDIO[audioKey]) {
-      const ok = await playAudio(FINAL_AUDIO[audioKey]);
+      const ok = await playAudio(FINAL_AUDIO[audioKey], FINAL_CLIP_RATE);
       if (ok) return true;
     }
     const dummy = key === "v" ? "ü" : key;

@@ -1,5 +1,5 @@
-import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819o";
-import { StrokeBoard } from "./stroke.js?v=20260819o";
+import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819r";
+import { StrokeBoard } from "./stroke.js?v=20260819r";
 import {
   speakSyllableParts,
   getRecognition,
@@ -10,7 +10,7 @@ import {
   getStepGuide,
   displayFinal,
   stopDemoAudio,
-} from "./pronounce.js?v=20260819o";
+} from "./pronounce.js?v=20260819r";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
