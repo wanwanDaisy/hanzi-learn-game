@@ -391,78 +391,13 @@ export function splitPinyin(pinyin) {
   };
 }
 
-function similarity(a, b) {
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  if (a.includes(b) || b.includes(a)) return 0.85;
-  const longer = a.length > b.length ? a : b;
-  const shorter = a.length > b.length ? b : a;
-  let matches = 0;
-  for (let i = 0; i < shorter.length; i++) {
-    if (longer.includes(shorter[i])) matches++;
-  }
-  const dist = levenshtein(a, b);
-  const lev = 1 - dist / Math.max(a.length, b.length);
-  return Math.max(lev, (matches / longer.length) * 0.7);
-}
-
-function levenshtein(a, b) {
-  const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
-  for (let j = 0; j <= b.length; j++) m[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
-    }
-  }
-  return m[a.length][b.length];
-}
-
 function isLikelySafari() {
   const ua = navigator.userAgent || "";
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox|MicroMessenger/i.test(ua);
 }
 
-function isLikelyFirefox() {
-  return /Firefox/i.test(navigator.userAgent || "");
-}
-
 export function isWeChat() {
   return /MicroMessenger/i.test(navigator.userAgent || "");
-}
-
-export function canUseSpeechRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return false;
-  if (isWeChat()) return false;
-  if (isLikelySafari()) return false;
-  if (isLikelyFirefox()) return false;
-  return true;
-}
-
-export function getSpeechSupportInfo() {
-  const recognition = canUseSpeechRecognition();
-  const tts = Boolean(window.speechSynthesis);
-  const wechat = isWeChat();
-  let browserTip = "";
-  if (wechat) {
-    browserTip =
-      "微信内置浏览器不支持朗读校准，播报也可能无声。请点右上角「···」→「在浏览器打开」（建议 Chrome）；或直接点下方按钮继续写字。";
-  } else if (!recognition) {
-    if (isLikelySafari()) {
-      browserTip =
-        "当前是 Safari，不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome。";
-    } else if (isLikelyFirefox()) {
-      browserTip =
-        "当前是 Firefox，不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome。";
-    } else {
-      browserTip =
-        "当前浏览器不支持朗读校准。可先听声母/韵母/整字，再点「已会读，开始写字」，或改用 Chrome / Edge。";
-    }
-  } else {
-    browserTip = "按步骤听：声母 → 韵母 → 整字；听完后朗读校准。需允许麦克风权限。";
-  }
-  return { recognition, tts, wechat, browserTip };
 }
 
 function pickChineseVoice() {
@@ -610,7 +545,7 @@ export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitc
       }
     }, isLikelySafari() ? 80 : 0);
 
-    setTimeout(() => finish(true), Math.max(9000, String(text).length * 1400));
+    setTimeout(() => finish(true), Math.max(9000, Math.ceil(String(text).length * (1200 / Math.max(rate, 0.25)))));
   });
 }
 
@@ -865,66 +800,6 @@ export async function speakSyllableParts(char, pinyin, onStep) {
     await new Promise((r) => setTimeout(r, 750));
   }
   return true;
-}
-
-export function getRecognition() {
-  if (!canUseSpeechRecognition()) return null;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = "zh-CN";
-  rec.interimResults = false;
-  rec.maxAlternatives = 5;
-  rec.continuous = false;
-  return rec;
-}
-
-export function scorePronunciation(results, targetChar, targetPinyin) {
-  return scorePart(results, { mode: "full", char: targetChar, pinyin: targetPinyin });
-}
-
-/** 分项打分：initial / final / full */
-export function scorePart(results, { mode, char, pinyin, parts }) {
-  const p = parts || splitPinyin(pinyin);
-  let targets = [];
-  if (mode === "initial") {
-    targets = [p.initial, p.initialDemo, p.initialPlain, p.initialDemoChar, INITIAL_DEMO_TTS[p.initial]].filter(Boolean);
-  } else if (mode === "final") {
-    const plain = p.finalPlain || stripTone(p.final);
-    const spoken = finalSpeakText(plain);
-    targets = [p.final, plain, stripTone(p.final), spoken, p.finalDemoChar, FINAL_DEMO_TTS[plain]].filter(Boolean);
-  } else {
-    targets = [char, pinyin, stripTone(pinyin)].filter(Boolean);
-  }
-
-  let best = 0;
-  let heard = "";
-
-  for (const alt of results) {
-    const transcript = (alt.transcript || "").trim();
-    heard = heard || transcript;
-    const tPlain = stripTone(transcript);
-
-    if (mode === "full" && transcript.includes(char)) {
-      best = Math.max(best, 0.95 + (alt.confidence || 0) * 0.05);
-    }
-
-    for (const t of targets) {
-      const tp = stripTone(t);
-      best = Math.max(best, similarity(tPlain, tp));
-      best = Math.max(best, similarity(transcript.toLowerCase(), String(t).toLowerCase()));
-      if (transcript.includes(t) || tPlain.includes(tp) || tp.includes(tPlain)) {
-        best = Math.max(best, 0.8);
-      }
-    }
-  }
-
-  const threshold = mode === "full" ? 0.62 : 0.55;
-  return {
-    score: Math.round(Math.min(1, best) * 100),
-    heard,
-    pass: best >= threshold,
-    mode,
-  };
 }
 
 export { stripTone };

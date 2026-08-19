@@ -1,16 +1,15 @@
-import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819r";
-import { StrokeBoard } from "./stroke.js?v=20260819r";
+import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819x";
+import { StrokeBoard } from "./stroke.js?v=20260819x";
+import { getExamples } from "./examples.js?v=20260819x";
 import {
   speakSyllableParts,
-  getRecognition,
-  scorePart,
-  getSpeechSupportInfo,
+  speakText,
   isWeChat,
   splitPinyin,
   getStepGuide,
   displayFinal,
   stopDemoAudio,
-} from "./pronounce.js?v=20260819r";
+} from "./pronounce.js?v=20260819x";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -19,9 +18,9 @@ const state = {
   currentId: null,
   group: "all",
   completed: loadProgress(),
-  recognizing: false,
   pronounceDone: false,
   strokeReady: false,
+  examplesReady: false,
   soundStep: "initial",
   soundParts: null,
   soundPassed: { initial: false, final: false, full: false },
@@ -31,16 +30,13 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const ICON_EAR = `<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 2a6 6 0 0 0-6 6v4.5c0 1.3.8 2.4 1.9 2.9l1.1.5V18a3 3 0 0 0 3 3h1a1 1 0 1 0 0-2h-1a1 1 0 0 1-1-1v-1.4l1.6-.7A4.5 4.5 0 0 0 15 12.5V8a3 3 0 0 1 6 0v1.2a1 1 0 1 0 2 0V8A5 5 0 0 0 13 2zm-2.2 8.8a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/></svg>`;
-const ICON_MOUTH = `<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 4c-4.2 0-7.5 2.1-8.7 5.2-.3.8.3 1.6 1.1 1.6h15.2c.8 0 1.4-.8 1.1-1.6C19.5 6.1 16.2 4 12 4zm-6.2 9.2c-.7 0-1.2.7-.9 1.3C6.3 17.3 8.9 20 12 20s5.7-2.7 7.1-5.5c.3-.6-.2-1.3-.9-1.3H5.8zM9.2 14.5h5.6c.4 0 .7.4.5.8-.5 1.1-1.7 2.2-3.3 2.2s-2.8-1.1-3.3-2.2c-.2-.4.1-.8.5-.8z"/></svg>`;
+
+const ICON_HORN = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9v6h3.2L12 19V5L7.2 9H4zm12.2 3c0-1.7-1-3.2-2.4-3.9v7.8c1.4-.7 2.4-2.2 2.4-3.9zm-2.4-7.2v2.05A6.02 6.02 0 0 1 18.2 12a6.02 6.02 0 0 1-4.4 5.15v2.05A8.03 8.03 0 0 0 20.2 12a8.03 8.03 0 0 0-6.4-7.2z"/></svg>`;
+const EXAMPLE_RATE = 0.5;
 
 function setListenBtnIdle(btn) {
   if (!btn) return;
   btn.innerHTML = `${ICON_EAR}<span>听一听</span>`;
-}
-
-function setSpeakBtnIdle(btn) {
-  if (!btn) return;
-  btn.innerHTML = `${ICON_MOUTH}<span>我来读</span>`;
 }
 
 function loadProgress() {
@@ -56,6 +52,7 @@ function saveProgress() {
 }
 
 function showScreen(name) {
+  if (name !== "practice") hideStrokePraise();
   state.screen = name;
   $$(".screen").forEach((el) => {
     el.classList.toggle("active", el.dataset.screen === name);
@@ -123,15 +120,19 @@ function ensureBoard() {
           ? `第 ${cur + 1}/${total} 笔${strokeName ? ` · ${strokeName}` : ""}`
           : `笔画 ${total}/${total} · 完成`;
     },
-    onStrokeComplete(ok, _score, isDemo) {
+    onStrokeComplete(ok, score, isDemo) {
       const feedback = $("#stroke-feedback");
+      if (ok && !isDemo) {
+        showStrokePraise();
+        $("#btn-to-examples").hidden = false;
+        return;
+      }
+      hideStrokePraise();
       feedback.hidden = false;
       if (ok) {
         feedback.className = "feedback ok";
-        feedback.textContent = isDemo
-          ? "笔顺演示完成。可以点「重写」再练，或点完成。"
-          : "描红完成！笔顺正确。";
-        $("#btn-finish").hidden = false;
+        feedback.textContent = "笔顺演示完成。可以点「重写」再练，或点完成。";
+        $("#btn-to-examples").hidden = false;
       } else {
         feedback.className = "feedback bad";
         feedback.textContent = "这一笔不太对，顺着灰色字模再写一次。";
@@ -172,7 +173,8 @@ function unlockStroke() {
     ? `「${item.char}」· 绿虚线为当前笔引导（${names.join("、")}）`
     : `「${item.char}」· 从红点起笔，顺着绿虚线描`;
   $("#stroke-feedback").hidden = true;
-  $("#btn-finish").hidden = true;
+  hideStrokePraise();
+  $("#btn-to-examples").hidden = true;
 
   ensureBoard().setCharacter({
     char: item.char,
@@ -182,6 +184,103 @@ function unlockStroke() {
   requestAnimationFrame(() => {
     $("#block-stroke").scrollIntoView({ behavior: "smooth", block: "start" });
   });
+}
+
+function setExamplesLocked(locked) {
+  const block = $("#block-examples");
+  if (!block) return;
+  block.dataset.locked = locked ? "true" : "false";
+  const hint = $("#examples-lock-hint");
+  const panel = $("#examples-panel");
+  if (hint) hint.hidden = !locked;
+  if (panel) panel.hidden = locked;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function highlightExample(sentence, char) {
+  const safeChar = escapeHtml(char);
+  return escapeHtml(sentence).split(safeChar).join(`<em class="ex-hit">${safeChar}</em>`);
+}
+
+function renderExamples(item) {
+  const list = $("#example-list");
+  if (!list) return;
+  const sentences = getExamples(item.char);
+  list.innerHTML = sentences
+    .map(
+      (s, i) => `
+    <li class="example-item">
+      <p class="example-text">${highlightExample(s, item.char)}</p>
+      <button type="button" class="ex-play" data-ex="${i}" aria-label="播放例句">${ICON_HORN}</button>
+    </li>`
+    )
+    .join("");
+  list.dataset.sentences = JSON.stringify(sentences);
+}
+
+let examplePlayGen = 0;
+
+async function playExample(index) {
+  const list = $("#example-list");
+  const sentences = JSON.parse(list?.dataset.sentences || "[]");
+  const text = sentences[index];
+  if (!text) return;
+  const gen = ++examplePlayGen;
+  $$(".ex-play").forEach((b) => b.classList.remove("playing"));
+  const btn = list.querySelector(`.ex-play[data-ex="${index}"]`);
+  if (btn) btn.classList.add("playing");
+  await speakText(text, { rate: EXAMPLE_RATE });
+  if (gen === examplePlayGen && btn) btn.classList.remove("playing");
+}
+
+function unlockExamples() {
+  if (state.examplesReady) {
+    $("#block-examples")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const item = getCharacter(state.currentId);
+  if (!item) return;
+  hideStrokePraise();
+  state.examplesReady = true;
+  renderExamples(item);
+  setExamplesLocked(false);
+  $("#btn-finish").hidden = false;
+  requestAnimationFrame(() => {
+    $("#block-examples")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+let praiseTimer = null;
+
+function hideStrokePraise() {
+  if (praiseTimer) {
+    clearTimeout(praiseTimer);
+    praiseTimer = null;
+  }
+  const el = $("#stroke-praise");
+  if (!el) return;
+  el.hidden = true;
+  el.classList.remove("show");
+}
+
+function showStrokePraise() {
+  const el = $("#stroke-praise");
+  if (!el) return;
+  if (praiseTimer) {
+    clearTimeout(praiseTimer);
+    praiseTimer = null;
+  }
+  el.hidden = false;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  $("#stroke-feedback").hidden = true;
+  praiseTimer = setTimeout(() => hideStrokePraise(), 1800);
 }
 
 function soundStepOrder(parts) {
@@ -240,24 +339,11 @@ function setSoundStep(step) {
   }
 }
 
-function advanceSoundStepOrUnlock() {
-  const order = soundStepOrder(state.soundParts);
-  const allPassed = order.every((s) => state.soundPassed[s]);
-  if (allPassed) {
-    $("#btn-skip-speak").hidden = true;
-    unlockStroke();
-    return;
-  }
-  const idx = order.indexOf(state.soundStep);
-  const next = order.slice(idx + 1).find((s) => !state.soundPassed[s]) || order.find((s) => !state.soundPassed[s]);
-  if (next) setSoundStep(next);
-}
-
 function openPractice() {
   const item = getCharacter(state.currentId);
   state.pronounceDone = false;
   state.strokeReady = false;
-  state.recognizing = false;
+  state.examplesReady = false;
   state.soundParts = splitPinyin(item.pinyin);
   state.soundPassed = { initial: !state.soundParts.hasInitial, final: false, full: false };
 
@@ -269,34 +355,14 @@ function openPractice() {
   $("#syl-final").textContent = displayFinal(state.soundParts.finalPlain) || "—";
   $("#syl-full").textContent = item.pinyin;
   $("#pronounce-feedback").hidden = true;
-  $("#pronounce-meter").hidden = true;
-  $("#meter-fill").style.width = "0%";
-  $("#btn-speak").classList.remove("listening");
-  setSpeakBtnIdle($("#btn-speak"));
   $("#btn-skip-speak").hidden = false;
+  $("#btn-skip-speak").textContent = isWeChat() ? "先写字" : "听完了，去写字";
   $("#btn-finish").hidden = true;
+  $("#btn-to-examples").hidden = true;
+  hideStrokePraise();
+  stopDemoAudio();
 
-  const support = getSpeechSupportInfo();
-  $("#mic-note").textContent = support.browserTip;
-  $("#block-pronounce").dataset.mode = support.recognition ? "mic" : "listen-only";
-
-  $("#btn-speak").hidden = !support.recognition;
-  const skip = $("#btn-skip-speak");
-  skip.className = support.recognition ? "btn ghost" : "btn primary";
-  if (support.wechat) {
-    skip.textContent = "先写字（可稍后再读）";
-  } else {
-    skip.textContent = support.recognition ? "会读了，去写字" : "听完了，去写字";
-  }
-
-  // Chrome：默认展示三步，并自动播一遍组合示范更易发现功能
-  const tip = $("#mic-note");
-  if (support.recognition && tip) {
-    tip.textContent =
-      "先点「听一听」，跟着读声母、韵母，再拼成整字哦。需要麦克风权限。";
-  }
-
-  if (!support.tts) {
+  if (!window.speechSynthesis) {
     $("#pronounce-feedback").hidden = false;
     $("#pronounce-feedback").className = "feedback bad";
     $("#pronounce-feedback").textContent = "当前浏览器不支持播报读音，可直接点下方按钮进入写字。";
@@ -304,6 +370,7 @@ function openPractice() {
 
   setSoundStep(state.soundParts.hasInitial ? "initial" : "final");
   setStrokeLocked(true);
+  setExamplesLocked(true);
   showScreen("practice");
 }
 
@@ -333,105 +400,11 @@ async function onListenAll() {
   }
 }
 
-function onSpeak() {
-  const item = getCharacter(state.currentId);
-  const rec = getRecognition();
-  const btn = $("#btn-speak");
-  const feedback = $("#pronounce-feedback");
-
-  if (!rec) {
-    feedback.hidden = false;
-    feedback.className = "feedback bad";
-    feedback.textContent = "无法使用语音识别，请改用「已会读，开始写字」。";
-    return;
-  }
-
-  if (state.recognizing) {
-    try {
-      rec.abort?.();
-    } catch {
-      /* ignore */
-    }
-    state.recognizing = false;
-    btn.classList.remove("listening");
-    setSpeakBtnIdle(btn);
-    return;
-  }
-
-  state.recognizing = true;
-  btn.classList.add("listening");
-  btn.textContent = "正在听你读…";
-  feedback.hidden = true;
-
-  const recognition = getRecognition();
-  recognition.onresult = (event) => {
-    const alts = [];
-    for (let i = 0; i < event.results[0].length; i++) {
-      alts.push(event.results[0][i]);
-    }
-    const result = scorePart(alts, {
-      mode: state.soundStep,
-      char: item.char,
-      pinyin: item.pinyin,
-      parts: state.soundParts,
-    });
-    showPronounceResult(result);
-  };
-  recognition.onerror = (event) => {
-    state.recognizing = false;
-    btn.classList.remove("listening");
-    setSpeakBtnIdle(btn);
-    feedback.hidden = false;
-    feedback.className = "feedback bad";
-    const err = event?.error || "";
-    if (err === "not-allowed" || err === "service-not-allowed") {
-      feedback.textContent = "未获得麦克风权限。请在浏览器设置中允许，或改用「已会读，开始写字」。";
-    } else if (err === "network") {
-      feedback.textContent = "语音识别需要联网。请检查网络，或改用「已会读，开始写字」。";
-    } else {
-      feedback.textContent = "没听清或当前浏览器识别不稳定。可再试，或点「已会读，开始写字」。";
-    }
-  };
-  recognition.onend = () => {
-    state.recognizing = false;
-    btn.classList.remove("listening");
-    setSpeakBtnIdle(btn);
-  };
-
-  try {
-    recognition.start();
-  } catch {
-    state.recognizing = false;
-    btn.classList.remove("listening");
-    setSpeakBtnIdle(btn);
-  }
-}
-
-function showPronounceResult(result) {
-  const feedback = $("#pronounce-feedback");
-  const meter = $("#pronounce-meter");
-  meter.hidden = false;
-  $("#meter-fill").style.width = `${result.score}%`;
-  $("#meter-label").textContent = `匹配度 ${result.score}%${result.heard ? ` · 听到「${result.heard}」` : ""}`;
-
-  feedback.hidden = false;
-  if (result.pass) {
-    state.soundPassed[state.soundStep] = true;
-    feedback.className = "feedback ok";
-    feedback.textContent = state.soundStep === "full" ? "拼对啦！真棒！" : "读得真好！继续下一步～";
-    setSoundStep(state.soundStep);
-    setTimeout(() => advanceSoundStepOrUnlock(), 650);
-  } else {
-    feedback.className = "feedback bad";
-    feedback.textContent = "再听一听，慢慢读，你可以的！";
-  }
-}
-
 function openDone() {
   const item = getCharacter(state.currentId);
   markDone(state.currentId);
   $("#done-char").textContent = item.char;
-  $("#done-msg").textContent = `${item.pinyin} · ${item.meaning} · 读音与笔画已完成`;
+  $("#done-msg").textContent = `${item.pinyin} · ${item.meaning} · 读音、笔画与例句已完成`;
   showScreen("done");
 }
 
@@ -462,22 +435,35 @@ function init() {
   });
 
   $("#btn-stroke-undo").addEventListener("click", () => {
-    if (state.strokeReady) ensureBoard().undo();
+    if (!state.strokeReady) return;
+    hideStrokePraise();
+    $("#btn-to-examples").hidden = true;
+    $("#stroke-feedback").hidden = true;
+    ensureBoard().undo();
   });
   $("#btn-stroke-clear").addEventListener("click", () => {
     if (!state.strokeReady) return;
     ensureBoard().clear();
-    $("#btn-finish").hidden = true;
+    $("#btn-to-examples").hidden = true;
     $("#stroke-feedback").hidden = true;
+    hideStrokePraise();
   });
   $("#btn-stroke-hint").addEventListener("click", () => {
-    if (state.strokeReady) ensureBoard().playDemo();
+    if (!state.strokeReady) return;
+    hideStrokePraise();
+    ensureBoard().playDemo();
   });
 
   $("#btn-listen-all").addEventListener("click", onListenAll);
-  $("#btn-speak").addEventListener("click", onSpeak);
   $("#btn-skip-speak").addEventListener("click", () => unlockStroke());
+  $("#stroke-praise")?.addEventListener("click", () => hideStrokePraise());
+  $("#btn-to-examples").addEventListener("click", () => unlockExamples());
   $("#btn-finish").addEventListener("click", () => openDone());
+  $("#example-list")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".ex-play");
+    if (!btn || !state.examplesReady) return;
+    playExample(Number(btn.dataset.ex));
+  });
   $("#btn-next-char").addEventListener("click", nextCharacter);
 
   $("#syllable-split")?.addEventListener("click", (e) => {
@@ -494,7 +480,7 @@ function init() {
   if (banner && isWeChat()) {
     banner.hidden = false;
     banner.textContent =
-      "正在微信中打开：朗读校准不可用。请点右上角 ··· → 在浏览器打开（推荐 Chrome）；也可先写笔画。";
+      "正在微信中打开：播报可能无声。请点右上角 ··· → 在浏览器打开；也可先去写字。";
   }
 
   showScreen("home");

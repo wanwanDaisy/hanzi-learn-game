@@ -20,6 +20,7 @@ export class StrokeBoard {
     this.charData = null;
     this.totalStrokes = 0;
     this.currentIndex = 0;
+    this.mistakes = 0;
     this._demoing = false;
     this._seq = 0;
   }
@@ -29,6 +30,7 @@ export class StrokeBoard {
     this.char = char;
     this.strokeNames = strokeNames.slice();
     this.currentIndex = 0;
+    this.mistakes = 0;
     this._demoing = false;
     this.charData = null;
 
@@ -230,6 +232,7 @@ export class StrokeBoard {
         }
       },
       onMistake: () => {
+        this.mistakes += 1;
         this._drawGuide(this.currentIndex);
         this._flashStroke(this.currentIndex);
         this.onStrokeComplete(false);
@@ -238,7 +241,8 @@ export class StrokeBoard {
         this.currentIndex = this.totalStrokes;
         this._clearGuide();
         this.onProgress(this.totalStrokes, this.totalStrokes, "");
-        this.onStrokeComplete(true);
+        const score = Math.max(60, 100 - this.mistakes * 10);
+        this.onStrokeComplete(true, score, false);
       },
     });
 
@@ -263,6 +267,7 @@ export class StrokeBoard {
     }
     this.writer.hideCharacter();
     this.writer.showOutline();
+    this.mistakes = 0;
     this._startQuiz(0);
   }
 
