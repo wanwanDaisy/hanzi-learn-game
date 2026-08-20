@@ -6,7 +6,7 @@
   <title>字境 · 认识汉字</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20260819w" />
+  <link rel="stylesheet" href="styles.css?v=20260820f" />
 </head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
@@ -37,9 +37,14 @@
         <button type="button" class="btn ghost back" data-goto="home">返回</button>
         <h2 class="screen-title">选择汉字</h2>
       </header>
-      <div class="group-tabs" id="group-tabs" role="tablist" aria-label="字库分类"></div>
-      <p class="select-meta" id="select-meta"></p>
-      <div class="char-grid" id="char-grid"></div>
+      <div class="group-tabs" id="group-tabs" hidden role="tablist" aria-label="字库分类"></div>
+      <div class="select-body with-rail" id="select-body">
+        <div class="select-main">
+          <p class="select-meta" id="select-meta"></p>
+          <div class="char-grid" id="char-grid"></div>
+        </div>
+        <nav class="letter-rail" id="letter-rail" role="tablist" aria-label="新华字典音序"></nav>
+      </div>
     </section>
 
     <!-- Practice: pronounce then stroke -->
@@ -154,6 +159,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20260819x"></script>
+  <script type="module" src="js/app.js?v=20260820f"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
-import { CHARACTERS, GROUPS, getCharacter, charactersByGroup } from "./data.js?v=20260819x";
-import { StrokeBoard } from "./stroke.js?v=20260819x";
-import { getExamples } from "./examples.js?v=20260819x";
+import { CHARACTERS, getCharacter, XINHUA_LETTERS, pinyinLetter } from "./data.js?v=20260820f";
+import { StrokeBoard } from "./stroke.js?v=20260820f";
+import { getExamples } from "./examples.js?v=20260820f";
 import {
   speakSyllableParts,
   speakText,
@@ -9,14 +9,14 @@ import {
   getStepGuide,
   displayFinal,
   stopDemoAudio,
-} from "./pronounce.js?v=20260819x";
+} from "./pronounce.js?v=20260820f";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
 const state = {
   screen: "home",
   currentId: null,
-  group: "all",
+  letter: null,
   completed: loadProgress(),
   pronounceDone: false,
   strokeReady: false,
@@ -67,39 +67,71 @@ function markDone(id) {
 }
 
 /* ---------- Select ---------- */
-function renderSelect() {
-  const tabs = $("#group-tabs");
-  tabs.innerHTML = GROUPS.map(
-    (g) =>
-      `<button type="button" class="group-tab${state.group === g.id ? " active" : ""}" data-group="${g.id}">${g.name}</button>`
-  ).join("");
-  tabs.querySelectorAll(".group-tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.group = btn.dataset.group;
-      renderSelect();
-    });
-  });
-
-  const list = charactersByGroup(state.group);
-  const doneCount = list.filter((c) => state.completed.includes(c.id)).length;
-  $("#select-meta").textContent = `楷书字库 · ${list.length} 字 · 已通关 ${doneCount}`;
-
-  const grid = $("#char-grid");
-  grid.innerHTML = list
-    .map((c) => {
-      const done = state.completed.includes(c.id) ? " done" : "";
-      return `
+function charCardHtml(c) {
+  const done = state.completed.includes(c.id) ? " done" : "";
+  return `
       <button type="button" class="char-card${done}" data-id="${c.id}">
         <span class="glyph">${c.char}</span>
         <span class="py">${c.pinyin}</span>
         <span class="mean">${c.meaning}</span>
       </button>`;
-    })
-    .join("");
+}
 
+function bindCharCards(grid) {
   grid.querySelectorAll(".char-card").forEach((btn) => {
     btn.addEventListener("click", () => startCharacter(btn.dataset.id));
   });
+}
+
+function charsByLetter(list) {
+  const map = new Map();
+  for (const c of list) {
+    const L = pinyinLetter(c.pinyin);
+    if (!L) continue;
+    if (!map.has(L)) map.set(L, []);
+    map.get(L).push(c);
+  }
+  return map;
+}
+
+function firstPresentLetter(byLetter) {
+  for (const L of XINHUA_LETTERS) {
+    if (byLetter.has(L)) return L;
+  }
+  return "A";
+}
+
+function setOpenLetter(letter) {
+  state.letter = letter;
+  renderSelect();
+}
+
+function renderLetterRail(byLetter) {
+  const rail = $("#letter-rail");
+  rail.innerHTML = XINHUA_LETTERS.map((L) => {
+    const on = byLetter.has(L);
+    const active = state.letter === L ? " active" : "";
+    return `<button type="button" class="letter-tab${active}" data-letter="${L}" role="tab" aria-selected="${state.letter === L}" ${on ? "" : "disabled"}>${L}</button>`;
+  }).join("");
+  rail.querySelectorAll(".letter-tab:not(:disabled)").forEach((btn) => {
+    btn.addEventListener("click", () => setOpenLetter(btn.dataset.letter));
+  });
+}
+
+function renderSelect() {
+  const list = CHARACTERS;
+  const byLetter = charsByLetter(list);
+  if (!state.letter || !byLetter.has(state.letter)) {
+    state.letter = firstPresentLetter(byLetter);
+  }
+  const chars = byLetter.get(state.letter) || [];
+  const doneCount = list.filter((c) => state.completed.includes(c.id)).length;
+  $("#select-meta").textContent = `${state.letter} · ${chars.length} 字 · 字库共 ${list.length} · 已通关 ${doneCount}`;
+  renderLetterRail(byLetter);
+
+  const grid = $("#char-grid");
+  grid.innerHTML = `<div class="letter-cards">${chars.map(charCardHtml).join("")}</div>`;
+  bindCharCards(grid);
 }
 
 function startCharacter(id) {

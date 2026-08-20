@@ -2697,14 +2697,66 @@ function isChartSyllable(pinyin) {
   return true;
 }
 
-// 兜底：剔除轻声助词 + 非视频字表组合
-export const CHARACTERS = CHARACTERS_RAW.filter(
+// 兜底：剔除轻声助词 + 非视频字表组合；导出时再按新华字典音序排
+const CHARACTERS_FILTERED = CHARACTERS_RAW.filter(
   (c) => !LIGHT_TONE_CHARS.has(c.char) && isChartSyllable(c.pinyin)
 );
 
 export function getCharacter(id) {
   return CHARACTERS.find((c) => c.id === id);
 }
+
+/** 《新华字典》音序：A–Z 26 字母 */
+export const XINHUA_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+const TONE_MARK = {
+  "ā": 1, "á": 2, "ǎ": 3, "à": 4,
+  "ē": 1, "é": 2, "ě": 3, "è": 4,
+  "ī": 1, "í": 2, "ǐ": 3, "ì": 4,
+  "ō": 1, "ó": 2, "ǒ": 3, "ò": 4,
+  "ū": 1, "ú": 2, "ǔ": 3, "ù": 4,
+  "ǖ": 1, "ǘ": 2, "ǚ": 3, "ǜ": 4,
+  "ń": 2, "ň": 3, "ǹ": 4,
+};
+
+function pinyinTone(pinyin) {
+  for (const ch of String(pinyin || "")) {
+    if (TONE_MARK[ch]) return TONE_MARK[ch];
+  }
+  const nfd = String(pinyin || "").normalize("NFD");
+  if (nfd.includes("\u0304")) return 1;
+  if (nfd.includes("\u0301")) return 2;
+  if (nfd.includes("\u030c")) return 3;
+  if (nfd.includes("\u0300")) return 4;
+  return 5;
+}
+
+/** 拼音首字母（zh/ch/sh 分别归 Z/C/S），与新华字典音序检字一致 */
+export function pinyinLetter(pinyin) {
+  const plain = stripTonePlain(pinyin);
+  return (plain[0] || "").toUpperCase();
+}
+
+function strokeCount(c) {
+  const n = (c.strokeNames || []).length;
+  return n > 0 ? n : 99;
+}
+
+/** 同音：阴平→阳平→上声→去声→轻声；再按笔画少到多 */
+export function compareXinhua(a, b) {
+  const pa = stripTonePlain(a.pinyin);
+  const pb = stripTonePlain(b.pinyin);
+  if (pa !== pb) return pa < pb ? -1 : 1;
+  const ta = pinyinTone(a.pinyin);
+  const tb = pinyinTone(b.pinyin);
+  if (ta !== tb) return ta - tb;
+  const sa = strokeCount(a);
+  const sb = strokeCount(b);
+  if (sa !== sb) return sa - sb;
+  return String(a.char).localeCompare(String(b.char), "zh-CN");
+}
+
+export const CHARACTERS = CHARACTERS_FILTERED.slice().sort(compareXinhua);
 
 export function charactersByGroup(groupId) {
   if (!groupId || groupId === "all") return CHARACTERS;
