@@ -6,7 +6,7 @@
   <title>字境 · 认识汉字</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20260820f" />
+  <link rel="stylesheet" href="styles.css?v=20260824e" />
 </head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
@@ -67,17 +67,17 @@
           <div class="syllable-split" id="syllable-split" aria-label="声母韵母">
             <div class="syl-part" data-part="initial">
               <span class="syl-label">声母</span>
-              <span class="syl-value" id="syl-initial">—</span>
+              <div class="syl-grid" id="syl-initial" role="img" aria-label="声母"></div>
             </div>
             <span class="syl-plus" aria-hidden="true">+</span>
             <div class="syl-part" data-part="final">
               <span class="syl-label">韵母</span>
-              <span class="syl-value" id="syl-final">—</span>
+              <div class="syl-grid" id="syl-final" role="img" aria-label="韵母"></div>
             </div>
             <span class="syl-plus" aria-hidden="true">=</span>
             <div class="syl-part" data-part="full">
               <span class="syl-label">拼读</span>
-              <span class="syl-value" id="syl-full">—</span>
+              <div class="syl-grid" id="syl-full" role="img" aria-label="拼读"></div>
             </div>
           </div>
           <aside class="step-guide" id="step-guide" hidden>
@@ -87,9 +87,23 @@
           <p id="pronounce-prompt" class="visually-hidden">先听一听，再跟着读</p>
           <div class="pronounce-actions">
             <button type="button" class="btn secondary kid-btn" id="btn-listen-all"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 2a6 6 0 0 0-6 6v4.5c0 1.3.8 2.4 1.9 2.9l1.1.5V18a3 3 0 0 0 3 3h1a1 1 0 1 0 0-2h-1a1 1 0 0 1-1-1v-1.4l1.6-.7A4.5 4.5 0 0 0 15 12.5V8a3 3 0 0 1 6 0v1.2a1 1 0 1 0 2 0V8A5 5 0 0 0 13 2zm-2.2 8.8a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/></svg><span>听一听</span></button>
-            <button type="button" class="btn primary kid-btn" id="btn-skip-speak">听完了，去写字</button>
+            <button type="button" class="btn primary kid-btn" id="btn-skip-speak">听完了，去写汉字</button>
           </div>
           <p class="feedback" id="pronounce-feedback" hidden></p>
+        </section>
+
+        <section class="practice-block pinyin-block" id="block-pinyin" aria-label="拼音书写" hidden>
+          <h3 class="block-title"><span class="step-num">2</span> 写拼音</h3>
+          <p class="pinyin-lock-hint" id="pinyin-lock-hint">听完读音后解锁四线三格</p>
+          <div class="pinyin-panel" id="pinyin-panel" hidden>
+            <p class="prompt sm" id="pinyin-prompt">对着浅色书写体，在四线三格里描一描。不会写就先点「演示」。</p>
+            <div class="pinyin-slots" id="pinyin-slots"></div>
+            <p class="feedback" id="pinyin-feedback" hidden></p>
+            <div class="pinyin-panel-actions">
+              <button type="button" class="btn ghost" id="btn-pinyin-hint">演示</button>
+              <button type="button" class="btn primary" id="btn-to-stroke">写完了，去写汉字</button>
+            </div>
+          </div>
         </section>
 
         <section class="practice-block stroke-block" id="block-stroke" aria-label="笔画书写" data-locked="true">
@@ -159,6 +173,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20260820f"></script>
+  <script type="module" src="js/app.js?v=20260824e"></script>
 </body>
 </html>

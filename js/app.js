@@ -1,6 +1,7 @@
-import { CHARACTERS, getCharacter, XINHUA_LETTERS, pinyinLetter } from "./data.js?v=20260820f";
-import { StrokeBoard } from "./stroke.js?v=20260820f";
-import { getExamples } from "./examples.js?v=20260820f";
+import { CHARACTERS, getCharacter, XINHUA_LETTERS, pinyinLetter } from "./data.js?v=20260824b";
+import { StrokeBoard } from "./stroke.js?v=20260824b";
+import { getExamples } from "./examples.js?v=20260824b";
+import { PinyinGlyphPreview } from "./pinyinWrite.js?v=20260824e";
 import {
   speakSyllableParts,
   speakText,
@@ -9,7 +10,7 @@ import {
   getStepGuide,
   displayFinal,
   stopDemoAudio,
-} from "./pronounce.js?v=20260820f";
+} from "./pronounce.js?v=20260824b";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -19,6 +20,7 @@ const state = {
   letter: null,
   completed: loadProgress(),
   pronounceDone: false,
+  pinyinReady: false,
   strokeReady: false,
   examplesReady: false,
   soundStep: "initial",
@@ -141,6 +143,36 @@ function startCharacter(id) {
 
 /* ---------- Combined practice ---------- */
 let board;
+let sylPreviews = null;
+
+function ensureSylPreviews() {
+  if (sylPreviews) return sylPreviews;
+  const initial = $("#syl-initial");
+  const final = $("#syl-final");
+  const full = $("#syl-full");
+  if (!initial || !final || !full) return null;
+  sylPreviews = {
+    initial: new PinyinGlyphPreview(initial),
+    final: new PinyinGlyphPreview(final),
+    full: new PinyinGlyphPreview(full),
+  };
+  return sylPreviews;
+}
+
+function fillSyllableGrids(item, parts) {
+  const views = ensureSylPreviews();
+  const split = $("#syllable-split");
+  if (split) split.classList.toggle("no-initial", !parts.hasInitial);
+  if (!views) return;
+  views.initial.setText(parts.hasInitial ? parts.initial : "");
+  views.final.setText(parts.final || displayFinal(parts.finalPlain) || "");
+  views.full.setText(item.pinyin);
+  requestAnimationFrame(() => {
+    views.initial.draw();
+    views.final.draw();
+    views.full.draw();
+  });
+}
 
 function ensureBoard() {
   if (board) return board;
@@ -183,6 +215,28 @@ function ensureBoard() {
   return board;
 }
 
+function setPinyinLocked(locked) {
+  const block = $("#block-pinyin");
+  if (!block) return;
+  block.dataset.locked = locked ? "true" : "false";
+  const hint = $("#pinyin-lock-hint");
+  const panel = $("#pinyin-panel");
+  if (hint) hint.hidden = !locked;
+  if (panel) panel.hidden = locked;
+}
+
+function finishPronounce() {
+  if (state.pronounceDone && state.strokeReady) {
+    $("#block-stroke")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const item = getCharacter(state.currentId);
+  if (!item) return;
+  state.pronounceDone = true;
+  stopDemoAudio();
+  unlockStroke();
+}
+
 function setStrokeLocked(locked) {
   const block = $("#block-stroke");
   block.dataset.locked = locked ? "true" : "false";
@@ -195,7 +249,6 @@ function unlockStroke() {
     $("#block-stroke").scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  state.pronounceDone = true;
   state.strokeReady = true;
   setStrokeLocked(false);
 
@@ -374,6 +427,7 @@ function setSoundStep(step) {
 function openPractice() {
   const item = getCharacter(state.currentId);
   state.pronounceDone = false;
+  state.pinyinReady = false;
   state.strokeReady = false;
   state.examplesReady = false;
   state.soundParts = splitPinyin(item.pinyin);
@@ -383,12 +437,9 @@ function openPractice() {
   $("#pronounce-char").textContent = item.char;
   $("#pronounce-pinyin").textContent = item.pinyin;
   $("#pronounce-meaning").textContent = item.meaning;
-  $("#syl-initial").textContent = state.soundParts.hasInitial ? state.soundParts.initial : "（无）";
-  $("#syl-final").textContent = displayFinal(state.soundParts.finalPlain) || "—";
-  $("#syl-full").textContent = item.pinyin;
   $("#pronounce-feedback").hidden = true;
   $("#btn-skip-speak").hidden = false;
-  $("#btn-skip-speak").textContent = isWeChat() ? "先写字" : "听完了，去写字";
+  $("#btn-skip-speak").textContent = isWeChat() ? "先写汉字" : "听完了，去写汉字";
   $("#btn-finish").hidden = true;
   $("#btn-to-examples").hidden = true;
   hideStrokePraise();
@@ -397,13 +448,14 @@ function openPractice() {
   if (!window.speechSynthesis) {
     $("#pronounce-feedback").hidden = false;
     $("#pronounce-feedback").className = "feedback bad";
-    $("#pronounce-feedback").textContent = "当前浏览器不支持播报读音，可直接点下方按钮进入写字。";
+    $("#pronounce-feedback").textContent = "当前浏览器不支持播报读音，可直接点下方按钮去写汉字。";
   }
 
   setSoundStep(state.soundParts.hasInitial ? "initial" : "final");
   setStrokeLocked(true);
   setExamplesLocked(true);
   showScreen("practice");
+  fillSyllableGrids(item, state.soundParts);
 }
 
 async function onListenAll() {
@@ -487,7 +539,7 @@ function init() {
   });
 
   $("#btn-listen-all").addEventListener("click", onListenAll);
-  $("#btn-skip-speak").addEventListener("click", () => unlockStroke());
+  $("#btn-skip-speak").addEventListener("click", () => finishPronounce());
   $("#stroke-praise")?.addEventListener("click", () => hideStrokePraise());
   $("#btn-to-examples").addEventListener("click", () => unlockExamples());
   $("#btn-finish").addEventListener("click", () => openDone());
@@ -512,7 +564,7 @@ function init() {
   if (banner && isWeChat()) {
     banner.hidden = false;
     banner.textContent =
-      "正在微信中打开：播报可能无声。请点右上角 ··· → 在浏览器打开；也可先去写字。";
+      "正在微信中打开：播报可能无声。请点右上角 ··· → 在浏览器打开；也可先去写汉字。";
   }
 
   showScreen("home");
