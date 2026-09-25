@@ -11,7 +11,7 @@ import {
   displayFinal,
   stopDemoAudio,
   unlockPlayback,
-} from "./pronounce.js?v=20260925b";
+} from "./pronounce.js?v=20260925c";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 

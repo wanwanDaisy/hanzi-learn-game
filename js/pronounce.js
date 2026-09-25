@@ -442,11 +442,6 @@ function waitForVoices() {
   });
 }
 
-function effectiveTtsRate(rate) {
-  if (isIOSWebKit() && rate < 0.7) return 0.85;
-  return rate;
-}
-
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
@@ -594,32 +589,24 @@ export function finalSpeakText(finalPlain) {
   return f;
 }
 
-export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitch = 1 } = {}) {
-  if (!window.speechSynthesis || !text) return false;
-
-  stopDemoAudio();
-  await waitForVoices();
-  const zh = pickChineseVoice();
-  // 没有中文语音时不要用英语引擎念汉字（iPad 上听起来就像读错）
-  if (!zh) return false;
-
-  const playRate = effectiveTtsRate(rate);
-  try {
-    window.speechSynthesis.cancel();
-  } catch {
-    /* ignore */
-  }
-  try {
-    window.speechSynthesis.resume();
-  } catch {
-    /* ignore */
-  }
-
+function speakUtterance(text, { rate, lang, pitch, voice }) {
   return new Promise((resolve) => {
+    const synth = window.speechSynthesis;
+    try {
+      synth.cancel();
+    } catch {
+      /* ignore */
+    }
+    try {
+      synth.resume();
+    } catch {
+      /* ignore */
+    }
+
     const u = new SpeechSynthesisUtterance(String(text));
-    u.lang = zh.lang || lang;
-    u.voice = zh;
-    u.rate = playRate;
+    u.lang = lang;
+    if (voice) u.voice = voice;
+    u.rate = rate;
     u.pitch = pitch;
 
     let settled = false;
@@ -639,16 +626,37 @@ export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitc
     const kick = isIOSWebKit() || isLikelySafari() ? 80 : 0;
     setTimeout(() => {
       try {
-        window.speechSynthesis.resume();
-        window.speechSynthesis.speak(u);
+        synth.resume();
+        synth.speak(u);
       } catch {
         finish(false);
       }
     }, kick);
 
-    const maxMs = Math.max(5000, Math.ceil(String(text).length * (1200 / Math.max(playRate, 0.25))));
-    setTimeout(() => finish(started), maxMs);
+    const maxMs = Math.max(8000, Math.ceil(String(text).length * (2000 / Math.max(rate, 0.15))));
+    setTimeout(() => {
+      if (synth.speaking || synth.pending) finish(true);
+      else finish(started);
+    }, maxMs);
   });
+}
+
+export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitch = 1 } = {}) {
+  if (!window.speechSynthesis || !text) return false;
+
+  stopDemoAudio();
+  await waitForVoices();
+  const zh = pickChineseVoice();
+  // 没有中文语音时不要用英语引擎念汉字（iPad 上听起来就像读错）
+  if (!zh) return false;
+
+  const opts = { rate, lang: zh.lang || lang, pitch, voice: zh };
+  let ok = await speakUtterance(text, opts);
+  // iOS 对 0.16 可能完全不发声，再按 Mac 的慢速意图用 0.5 试一次
+  if (!ok && isIOSWebKit() && rate < 0.45) {
+    ok = await speakUtterance(text, { ...opts, rate: 0.5 });
+  }
+  return ok;
 }
 
 export async function speakCharacter(char, pinyin) {
@@ -908,13 +916,7 @@ export async function speakSoundStep(stepKey, char, pinyin) {
     if (!text) return true;
     return speakText(text, { rate: DEMO_RATE });
   }
-  if (isIOSWebKit()) {
-    const clips = await playClipPair(parts);
-    if (clips) return true;
-  }
-  const tts = await speakText(char, { rate: DEMO_RATE });
-  if (tts) return true;
-  return playClipPair(parts);
+  return speakText(char, { rate: DEMO_RATE });
 }
 
 export const CHART_INITIAL_KEYS = [
@@ -972,16 +974,13 @@ export async function playChartSound(kind, key) {
 }
 
 /**
- * 组合示范：先整字 → 停 2 秒 → 声母 → 韵母 → 再组合整字
- * iPad/WebKit 整字也用课堂录音，不走系统 TTS（英语引擎会把汉字念错）。
+ * 组合示范：先整字 TTS（与 Mac 相同）→ 停 2 秒 → 声母/韵母课堂录音 → 再组合整字 TTS
  */
 export async function speakSyllableParts(char, pinyin, onStep) {
   const parts = splitPinyin(pinyin);
 
   onStep?.({ key: "full", speak: char, show: pinyin, phase: "preview" });
-  const previewOk = isIOSWebKit()
-    ? await playClipPair(parts)
-    : await speakText(char, { rate: DEMO_RATE });
+  const previewOk = await speakText(char, { rate: DEMO_RATE });
   if (previewOk) {
     await new Promise((r) => setTimeout(r, 2000));
   }
