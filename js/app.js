@@ -10,7 +10,8 @@ import {
   getStepGuide,
   displayFinal,
   stopDemoAudio,
-} from "./pronounce.js?v=20260824b";
+  unlockPlayback,
+} from "./pronounce.js?v=20260925b";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -311,6 +312,7 @@ function renderExamples(item) {
 let examplePlayGen = 0;
 
 async function playExample(index) {
+  unlockPlayback();
   const list = $("#example-list");
   const sentences = JSON.parse(list?.dataset.sentences || "[]");
   const text = sentences[index];
@@ -459,6 +461,7 @@ function openPractice() {
 }
 
 async function onListenAll() {
+  unlockPlayback();
   const item = getCharacter(state.currentId);
   const btn = $("#btn-listen-all");
   const feedback = $("#pronounce-feedback");
@@ -501,6 +504,7 @@ function nextCharacter() {
 /* ---------- Wire up ---------- */
 function init() {
   $("#btn-start").addEventListener("click", () => {
+    unlockPlayback();
     renderSelect();
     showScreen("select");
   });
@@ -559,6 +563,7 @@ function init() {
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
   }
+  document.addEventListener("pointerdown", () => unlockPlayback(), { once: true, passive: true });
 
   const banner = $("#env-banner");
   if (banner && isWeChat()) {

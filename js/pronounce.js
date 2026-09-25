@@ -96,9 +96,9 @@ const INITIAL_DEMO_TTS = {
   b: "玻",
   p: "坡",
   m: "摸",
-  f: "fō",
+  f: "佛",
   d: "嘚",
-  t: "tē",
+  t: "特",
   // 「勒」常被读成 lēi，改「嘞」(lē)；n 用「nē」保一声（汉字「讷」易读错）
   n: "讷",
   l: "勒",
@@ -287,19 +287,19 @@ const FINAL_DEMO_TTS = {
   ai: "哀",
   ei: "欸",
   ui: "威",
-  ao: "āo",
+  ao: "凹",
   ou: "欧",
   iu: "优",
   ie: "耶",
   ve: "约",
-  er: "ēr",
+  er: "儿",
   an: "安",
   en: "恩",
   in: "因",
   un: "温",
   vn: "晕",
   ang: "肮",
-  eng: "ēng",
+  eng: "鞥",
   ing: "英",
   ong: "翁",
   ia: "呀",
@@ -396,17 +396,30 @@ function isLikelySafari() {
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox|MicroMessenger/i.test(ua);
 }
 
+/** iPad / iPhone，含 iPadOS 桌面 UA、iPad Chrome（CriOS，仍是 WebKit） */
+function isIOSWebKit() {
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  if (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1) return true;
+  return false;
+}
+
 export function isWeChat() {
   return /MicroMessenger/i.test(navigator.userAgent || "");
 }
 
+function voiceScore(v) {
+  const s = `${v.lang || ""} ${v.name || ""}`;
+  if (/zh[-_]?CN/i.test(v.lang) || /Ting[- ]?Ting|Tingting|普通话|Chinese \(China\)/i.test(s)) return 3;
+  if (/zh[-_]?TW|Mei[- ]?Jia|Meijia|国语/i.test(s)) return 2;
+  if (/zh[-_]?HK|Sin[- ]?Ji|Sinji/i.test(s)) return 1;
+  if (/zh|Chinese|中文/i.test(s)) return 1;
+  return 0;
+}
+
 function pickChineseVoice() {
   const voices = window.speechSynthesis?.getVoices?.() || [];
-  return (
-    voices.find((v) => /zh[-_]?CN/i.test(v.lang)) ||
-    voices.find((v) => /Chinese|中文|普通话|国语/i.test(v.lang + v.name)) ||
-    null
-  );
+  return voices.filter((v) => voiceScore(v) > 0).sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
 }
 
 function waitForVoices() {
@@ -422,11 +435,86 @@ function waitForVoices() {
     }
     const done = () => {
       window.speechSynthesis.onvoiceschanged = null;
-      resolve(window.speechSynthesis.getVoices());
+      resolve(window.speechSynthesis.getVoices() || []);
     };
     window.speechSynthesis.onvoiceschanged = done;
-    setTimeout(done, 400);
+    setTimeout(done, isIOSWebKit() ? 800 : 400);
   });
+}
+
+function effectiveTtsRate(rate) {
+  if (isIOSWebKit() && rate < 0.7) return 0.85;
+  return rate;
+}
+
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+
+let audioCtx = null;
+let sharedAudio = null;
+let currentBufferSource = null;
+const clipCache = new Map();
+
+function ensureAudioCtx() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+  return audioCtx;
+}
+
+function ensureSharedAudio() {
+  if (sharedAudio) return sharedAudio;
+  const a = document.getElementById("demo-audio") || new Audio();
+  a.preload = "auto";
+  a.playsInline = true;
+  a.setAttribute("playsinline", "true");
+  a.setAttribute("webkit-playsinline", "true");
+  if (!a.parentNode && document.body) {
+    a.hidden = true;
+    document.body.appendChild(a);
+  }
+  sharedAudio = a;
+  return a;
+}
+
+/** 必须在点击等手势里同步调用，之后 iOS 才允许异步播录音 / TTS */
+export function unlockPlayback() {
+  try {
+    const synth = window.speechSynthesis;
+    if (synth) {
+      synth.getVoices();
+      const silent = new SpeechSynthesisUtterance(" ");
+      silent.volume = 0;
+      silent.rate = 1;
+      silent.lang = "zh-CN";
+      synth.speak(silent);
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const a = ensureSharedAudio();
+    a.muted = true;
+    a.src = SILENT_WAV;
+    a.play().catch(() => {});
+  } catch {
+    /* ignore */
+  }
+  try {
+    ensureAudioCtx();
+    if (audioCtx) {
+      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate || 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -511,7 +599,16 @@ export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitc
 
   stopDemoAudio();
   await waitForVoices();
-  window.speechSynthesis.cancel();
+  const zh = pickChineseVoice();
+  // 没有中文语音时不要用英语引擎念汉字（iPad 上听起来就像读错）
+  if (!zh) return false;
+
+  const playRate = effectiveTtsRate(rate);
+  try {
+    window.speechSynthesis.cancel();
+  } catch {
+    /* ignore */
+  }
   try {
     window.speechSynthesis.resume();
   } catch {
@@ -520,22 +617,26 @@ export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitc
 
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(String(text));
-    u.lang = lang;
-    u.rate = rate;
+    u.lang = zh.lang || lang;
+    u.voice = zh;
+    u.rate = playRate;
     u.pitch = pitch;
-    const zh = pickChineseVoice();
-    if (zh) u.voice = zh;
 
     let settled = false;
+    let started = false;
     const finish = (ok) => {
       if (settled) return;
       settled = true;
       resolve(ok);
     };
 
+    u.onstart = () => {
+      started = true;
+    };
     u.onend = () => finish(true);
     u.onerror = () => finish(false);
 
+    const kick = isIOSWebKit() || isLikelySafari() ? 80 : 0;
     setTimeout(() => {
       try {
         window.speechSynthesis.resume();
@@ -543,9 +644,10 @@ export async function speakText(text, { rate = SPEECH_RATE, lang = "zh-CN", pitc
       } catch {
         finish(false);
       }
-    }, isLikelySafari() ? 80 : 0);
+    }, kick);
 
-    setTimeout(() => finish(true), Math.max(9000, Math.ceil(String(text).length * (1200 / Math.max(rate, 0.25)))));
+    const maxMs = Math.max(5000, Math.ceil(String(text).length * (1200 / Math.max(playRate, 0.25))));
+    setTimeout(() => finish(started), maxMs);
   });
 }
 
@@ -620,16 +722,24 @@ export function stopDemoAudio() {
   } catch {
     /* ignore */
   }
-  if (!currentDemoAudio) return;
-  const a = currentDemoAudio;
+  if (currentBufferSource) {
+    try {
+      currentBufferSource.stop();
+    } catch {
+      /* ignore */
+    }
+    currentBufferSource = null;
+  }
+  const a = currentDemoAudio || sharedAudio;
   currentDemoAudio = null;
+  if (!a) return;
   a.onended = null;
   a.onerror = null;
-  a._abort = null;
+  a.onplaying = null;
+  a.onloadedmetadata = null;
   try {
     a.pause();
-    a.removeAttribute("src");
-    a.load();
+    a.muted = false;
   } catch {
     /* ignore */
   }
@@ -643,20 +753,43 @@ function applyClipRate(a, rate) {
   a.playbackRate = rate;
 }
 
-function clipTimeoutMs(a, rate) {
-  const dur = Number(a.duration);
+function clipTimeoutMs(duration, rate) {
+  const dur = Number(duration);
   if (!Number.isFinite(dur) || dur <= 0) return 4500;
   return Math.ceil((dur / rate) * 1000) + 600;
 }
 
-function playAudio(src, rate = INITIAL_CLIP_RATE) {
+function clipPlayRate(rate) {
+  // WebKit 对 m4a 降速容易变调/无声，iPad 上按原速播课堂录音
+  if (isIOSWebKit()) return 1;
+  return rate;
+}
+
+async function decodeClip(src) {
+  if (clipCache.has(src)) return clipCache.get(src);
+  const ctx = ensureAudioCtx();
+  if (!ctx) throw new Error("no-audioctx");
+  const res = await fetch(src);
+  if (!res.ok) throw new Error("fetch");
+  const arr = await res.arrayBuffer();
+  const buf = await ctx.decodeAudioData(arr.slice(0));
+  clipCache.set(src, buf);
+  return buf;
+}
+
+function playDecodedBuffer(buf, rate, gen) {
   return new Promise((resolve) => {
-    stopDemoAudio();
-    const gen = playGen;
-    const a = new Audio(src);
-    currentDemoAudio = a;
-    a.preload = "auto";
-    applyClipRate(a, rate);
+    const ctx = ensureAudioCtx();
+    if (!ctx || gen !== playGen) {
+      resolve(false);
+      return;
+    }
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    src.connect(ctx.destination);
+    currentBufferSource = src;
     let done = false;
     const finish = (ok) => {
       if (done) return;
@@ -665,24 +798,91 @@ function playAudio(src, rate = INITIAL_CLIP_RATE) {
         clearTimeout(playTimer);
         playTimer = null;
       }
-      if (currentDemoAudio === a) currentDemoAudio = null;
+      if (currentBufferSource === src) currentBufferSource = null;
       resolve(ok && gen === playGen);
     };
-    const armTimeout = () => {
+    src.onended = () => finish(true);
+    try {
+      src.start(0);
+    } catch {
+      finish(false);
+      return;
+    }
+    playTimer = setTimeout(() => finish(true), clipTimeoutMs(buf.duration, rate));
+  });
+}
+
+function playHtmlAudio(src, rate, gen) {
+  return new Promise((resolve) => {
+    const a = ensureSharedAudio();
+    currentDemoAudio = a;
+    a.muted = false;
+    a.playsInline = true;
+    a.setAttribute("playsinline", "true");
+    a.preload = "auto";
+    a.src = src;
+    applyClipRate(a, rate);
+    let done = false;
+    let started = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      if (playTimer) {
+        clearTimeout(playTimer);
+        playTimer = null;
+      }
+      if (currentDemoAudio === a) currentDemoAudio = null;
+      resolve(ok && started && gen === playGen);
+    };
+    const armTimeout = (duration) => {
       if (done || gen !== playGen) return;
       if (playTimer) clearTimeout(playTimer);
-      playTimer = setTimeout(() => finish(true), clipTimeoutMs(a, rate));
+      playTimer = setTimeout(() => finish(started), clipTimeoutMs(duration, rate));
     };
     a.onloadedmetadata = () => {
       applyClipRate(a, rate);
-      armTimeout();
+      armTimeout(a.duration);
     };
-    a.onplaying = () => applyClipRate(a, rate);
-    a.onended = () => finish(true);
+    a.onplaying = () => {
+      started = true;
+      applyClipRate(a, rate);
+    };
+    a.onended = () => finish(started);
     a.onerror = () => finish(false);
     a.play().catch(() => finish(false));
     armTimeout();
   });
+}
+
+async function playAudio(src, rate = INITIAL_CLIP_RATE) {
+  stopDemoAudio();
+  const gen = playGen;
+  const playRate = clipPlayRate(rate);
+  // 桌面 Chrome 走 HTMLAudio，才能 preservesPitch 慢放；iPad 用 Web Audio，避免 play() 被手势策略拦住
+  if (isIOSWebKit()) {
+    ensureAudioCtx();
+    try {
+      const buf = await decodeClip(src);
+      if (gen !== playGen) return false;
+      return await playDecodedBuffer(buf, playRate, gen);
+    } catch {
+      if (gen !== playGen) return false;
+      return playHtmlAudio(src, playRate, gen);
+    }
+  }
+  return playHtmlAudio(src, playRate, gen);
+}
+
+async function playClipPair(parts) {
+  let any = false;
+  if (parts.hasInitial && INITIAL_AUDIO[parts.initial]) {
+    if (await playAudio(INITIAL_AUDIO[parts.initial])) any = true;
+  }
+  const key = finalAudioKey(parts.finalPlain || stripTone(parts.final || ""));
+  if (key && FINAL_AUDIO[key]) {
+    if (await playAudio(FINAL_AUDIO[key], FINAL_CLIP_RATE)) any = true;
+  }
+  return any;
 }
 
 /** 单步播报（只播示范音，不口播步骤名） */
@@ -708,7 +908,13 @@ export async function speakSoundStep(stepKey, char, pinyin) {
     if (!text) return true;
     return speakText(text, { rate: DEMO_RATE });
   }
-  return speakText(char, { rate: DEMO_RATE });
+  if (isIOSWebKit()) {
+    const clips = await playClipPair(parts);
+    if (clips) return true;
+  }
+  const tts = await speakText(char, { rate: DEMO_RATE });
+  if (tts) return true;
+  return playClipPair(parts);
 }
 
 export const CHART_INITIAL_KEYS = [
@@ -767,14 +973,18 @@ export async function playChartSound(kind, key) {
 
 /**
  * 组合示范：先整字 → 停 2 秒 → 声母 → 韵母 → 再组合整字
+ * iPad/WebKit 整字也用课堂录音，不走系统 TTS（英语引擎会把汉字念错）。
  */
 export async function speakSyllableParts(char, pinyin, onStep) {
   const parts = splitPinyin(pinyin);
 
   onStep?.({ key: "full", speak: char, show: pinyin, phase: "preview" });
-  let ok = await speakText(char, { rate: DEMO_RATE });
-  if (!ok) return false;
-  await new Promise((r) => setTimeout(r, 2000));
+  const previewOk = isIOSWebKit()
+    ? await playClipPair(parts)
+    : await speakText(char, { rate: DEMO_RATE });
+  if (previewOk) {
+    await new Promise((r) => setTimeout(r, 2000));
+  }
 
   const steps = [];
   if (parts.hasInitial) {
@@ -793,13 +1003,14 @@ export async function speakSyllableParts(char, pinyin, onStep) {
   });
   steps.push({ key: "full", speak: char, show: pinyin, phase: "calibrate" });
 
+  let any = previewOk;
   for (const step of steps) {
     onStep?.(step);
-    ok = await speakSoundStep(step.key, char, pinyin);
-    if (!ok) return false;
+    const ok = await speakSoundStep(step.key, char, pinyin);
+    if (ok) any = true;
     await new Promise((r) => setTimeout(r, 750));
   }
-  return true;
+  return any;
 }
 
 export { stripTone };
