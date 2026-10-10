@@ -1424,3 +1424,98 @@ button {
 
 
 
+
+/* Shared entrance: a reading desk and a counting orchard. */
+.learning-modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; width: 100%; margin: 0 0 2rem; }
+.learning-module { border: 1px solid #bccfc3; border-radius: 26px; padding: 1rem 1.25rem 1.25rem; overflow: hidden; transition: transform .2s ease; }
+.module-literacy { background: #f6f4eb; }
+.module-math { background: #eaf3dc; border-color: #b7ce9c; }
+.module-art { height: 156px; display: flex; align-items: center; justify-content: center; border-radius: 18px; margin-bottom: 1rem; }
+.module-art svg { display: block; width: 100%; max-width: 270px; height: 100%; }
+.literacy-art { background: #e6ece5; }
+.math-art { background: #e0edce; border-radius: 65px 24px 65px 24px; }
+.learning-module h2 { font-size: 1.65rem; margin: .7rem 0; color: #355c50; }
+.module-math h2 { color: #396b35; }
+.learning-module p { font-size: .95rem; color: #596f5e; margin: 0 0 1.35rem; }
+.learning-module .btn { min-height: 52px; width: 100%; text-decoration: none; }
+.module-literacy .btn { background: #355f55; }
+.module-math .btn { background: #4c7c39; }
+.learning-module .btn:focus-visible { outline: 3px solid #287ca2; outline-offset: 4px; }
+@media (hover: hover) { .learning-module:hover { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .learning-module { transition: none; } }
+@media (max-width: 480px) { .learning-modules { grid-template-columns: 1fr; gap: 1rem; } .learning-module { padding: 1rem; } .module-art { height: 135px; } #screen-home .brand-hero { padding-top: 1.2rem; } }
+
+/* Literacy uses the same calm paper-and-green surfaces as arithmetic. */
+body.literacy-view { background: #f5f7ee; color: #243e32; --ink: #243e32; --ink-soft: #596f5e; --jade: #28765b; --line: #dce5d6; }
+.literacy-view .atmosphere { display: none; }
+.literacy-view #app { max-width: 1080px; padding: 24px 28px 50px; }
+.literacy-view .topbar { margin: 0 0 28px; min-height: 48px; }
+.literacy-view .screen-title { font-weight: 600; letter-spacing: 0; }
+.literacy-view .btn { min-height: 48px; border-radius: 14px; box-shadow: none; touch-action: manipulation; }
+.literacy-view .btn.primary { background: #28765b; color: #fff; }
+.literacy-view .btn.primary:hover { background: #205f49; }
+.literacy-view .btn.secondary, .literacy-view .btn.ghost { background: #edf3e6; color: #28765b; border: 1px solid transparent; backdrop-filter: none; }
+.literacy-view button:focus-visible { outline: 3px solid #287ca2; outline-offset: 3px; }
+.literacy-intro { margin: 0 0 28px; }
+.literacy-eyebrow { font-size: 12px; letter-spacing: 3px; color: #28765b; }
+.literacy-intro h2 { font-size: 30px; margin: 12px 0; }
+.literacy-intro > p:last-child { color: #67796c; line-height: 1.8; margin: 0; }
+.literacy-view .select-body.with-rail { gap: 24px; }
+.literacy-view .select-main { padding: 24px; background: #fff; border: 1px solid #dce5d6; border-radius: 28px; }
+.literacy-view .select-meta { color: #67796c; margin-bottom: 20px; }
+.literacy-view .letter-rail { width: 116px; padding: 10px; background: #e9efdf; border: 0; box-shadow: none; gap: 6px; height: auto; max-height: none; grid-template-rows: repeat(13, 40px); top: 16px; }
+.literacy-view .letter-tab { background: #f7f9f2; color: #466349; box-shadow: none; }
+.literacy-view .letter-tab.active { background: #28765b; color: #fff; }
+.literacy-view .letter-tab:disabled { color: #9da993; background: transparent; }
+.literacy-view .char-card { background: #f7f9f1; border: 1px solid #dce5d6; box-shadow: none; backdrop-filter: none; border-radius: 18px; }
+.literacy-view .char-card::before { display: none; }
+.literacy-view .char-card:hover { background: #edf5e6; border-color: #95b88b; box-shadow: none; transform: translateY(-2px); }
+.literacy-view .char-card.done::after { content: '✓'; color: #28765b; background: #dfefd5; border: 0; border-radius: 50%; }
+.literacy-view .char-card .mean { color: #67796c; }
+.literacy-view .practice-body { max-width: 820px; margin: auto; padding: 0; gap: 22px; background: none; border: 0; box-shadow: none; backdrop-filter: none; }
+.literacy-view .practice-block { padding: 28px 32px; background: white; border: 1px solid #dce5d6; border-radius: 28px; box-shadow: none; }
+.literacy-view .block-title { font-size: 20px; margin-bottom: 24px; letter-spacing: 0; }
+.literacy-view .step-num { width: 30px; height: 30px; background: #e1efd7; color: #28765b; font-size: 16px; }
+.literacy-view .pinyin-card { background: #f7f9f1; border-radius: 20px; padding: 24px; margin-bottom: 24px; }
+.literacy-view .big-char { animation: none; }
+.literacy-view .meaning { color: #67796c; }
+.literacy-view .syllable-split { gap: 12px; margin-bottom: 22px; }
+.literacy-view .syl-part { max-width: 180px; padding: 12px; background: #f7f9f1; border: 1px solid #dce5d6; border-radius: 16px; }
+.literacy-view .syl-part.active { background: #e5f1dc; border-color: #6f9d61; }
+.literacy-view .syl-label { font-size: 14px; letter-spacing: 0; }
+.literacy-view .step-guide { background: #f0f5e9; border: 0; border-radius: 16px; padding: 18px; text-align: left; }
+.literacy-view .pronounce-actions { margin: 22px 0 0; gap: 12px; }
+.literacy-view .stroke-block[data-locked="true"], .literacy-view .examples-block[data-locked="true"] { opacity: 1; background: #edf2e7; border-style: dashed; }
+.literacy-view .stroke-hud { gap: 10px; }
+.literacy-view .example-item { background: #f7f9f1; border: 1px solid #dce5d6; border-radius: 18px; box-shadow: none; }
+.literacy-view .ex-play { background: #e1efd7; color: #28765b; min-width: 48px; min-height: 48px; }
+.literacy-view .done-card { max-width: 720px; background: #fff; border: 1px solid #dce5d6; border-radius: 28px; padding: 40px 24px; box-shadow: none; backdrop-filter: none; }
+.literacy-view .done-seal { background: #e1efd7; color: #28765b; border: 0; border-radius: 50%; width: 72px; height: 72px; transform: none; animation: none; }
+.literacy-view .done-title { font-size: 28px; letter-spacing: 0; }
+@media (max-width: 600px) {
+  .literacy-view #app { padding: 18px 16px 32px; }
+  .literacy-view .topbar { gap: 10px; margin-bottom: 22px; }
+  .literacy-intro h2 { font-size: 25px; }
+  .literacy-view .select-body.with-rail { gap: 10px; }
+  .literacy-view .select-main { padding: 14px 10px; border-radius: 20px; }
+  .literacy-view .letter-rail { width: 92px; padding: 5px; gap: 4px; }
+  .literacy-view .letter-cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .literacy-view .char-card { padding: 18px 4px; }
+  .literacy-view .char-card .glyph { font-size: 2.6rem; }
+  .literacy-view .char-card .mean { font-size: 12px; overflow-wrap: anywhere; }
+  .literacy-view .practice-block { padding: 22px 14px; border-radius: 22px; }
+  .literacy-view .syllable-split { gap: 5px; }
+  .literacy-view .syl-part { min-width: 0; flex-basis: 0; padding: 8px 4px; }
+  .literacy-view .syl-label { font-size: 12px; }
+  .literacy-view .pronounce-actions .btn { width: 100%; }
+  .literacy-view .stage-badge { font-size: 12px; letter-spacing: 0; }
+}
+
+/* Completion keeps navigation in the same upper-left position. */
+.literacy-view #screen-done.active { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+.literacy-view #screen-done .done-card { align-self: center; margin-top: clamp(24px, 8vh, 80px); }
+
+/* A growing book connects the two learning games. */
+.brand-emblem { width: 88px; height: 88px; margin: 0 0 22px; }
+.brand-emblem svg { display: block; width: 100%; height: 100%; }
+@media (max-width: 480px) { .brand-emblem { width: 72px; height: 72px; margin-bottom: 18px; } }

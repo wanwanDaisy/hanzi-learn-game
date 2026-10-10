@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>字境 · 认识汉字</title>
+  <title>字境 · 认字与数数</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20260925c" />
+  <link rel="stylesheet" href="styles.css?v=20261010e" />
 </head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
@@ -21,22 +21,63 @@
     <!-- Home -->
     <section class="screen active" id="screen-home" data-screen="home">
       <header class="brand-hero">
-        <p class="seal" aria-hidden="true">识</p>
+        <div class="brand-emblem" aria-hidden="true">
+          <svg viewBox="0 0 96 96" focusable="false">
+            <rect x="3" y="3" width="90" height="90" rx="29" fill="#e5efdc"/>
+            <path d="M48 51V29" fill="none" stroke="#38775a" stroke-width="4" stroke-linecap="round"/>
+            <path d="M48 39C33 40 27 30 28 20C42 20 50 27 48 39Z" fill="#88b76b"/>
+            <path d="M48 31C47 17 59 12 70 14C69 26 61 33 48 31Z" fill="#39795b"/>
+            <path d="M18 47Q33 42 48 50Q63 42 78 47V73Q62 68 48 77Q34 68 18 73Z" fill="#bdd4a7"/>
+            <path d="M18 43Q33 39 48 48Q63 39 78 43V68Q62 65 48 74Q34 65 18 68Z" fill="#fffdf4" stroke="#39795b" stroke-width="2.8" stroke-linejoin="round"/>
+            <path d="M48 49V73M26 52Q34 52 40 56M26 59Q34 59 40 63M56 56Q62 52 70 52M56 63Q62 59 70 59" fill="none" stroke="#8aab78" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </div>
         <h1 class="brand">字境</h1>
-        <p class="tagline">读准音 · 写好字</p>
-        <div class="home-actions">
-          <button type="button" class="btn primary" id="btn-start">开始识字</button>
+        <p class="tagline">认一认汉字 · 数一数世界</p>
+        <div class="learning-modules" aria-label="选择游戏">
+          <article class="learning-module module-literacy">
+            <div class="module-art literacy-art" aria-hidden="true">
+              <svg viewBox="0 0 260 150" focusable="false">
+                <ellipse cx="130" cy="132" rx="94" ry="9" fill="#d6e1dc"/>
+                <path d="M38 108Q82 96 130 113Q176 96 222 108L219 129Q172 119 130 136Q83 119 41 129Z" fill="#73958b"/>
+                <path d="M42 97Q85 85 130 104Q175 85 218 97V121Q174 112 130 129Q86 112 42 121Z" fill="#fffdf5" stroke="#73958b" stroke-width="2"/>
+                <path d="M130 105V129M54 105Q88 99 115 109M147 109Q181 99 206 105" fill="none" stroke="#c2d0c5" stroke-width="2"/>
+                <g transform="rotate(-8 126 67)"><rect x="79" y="16" width="94" height="94" rx="12" fill="#fffdf7" stroke="#729387" stroke-width="3"/><path d="M126 18V108M81 63H171" stroke="#c9a59a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="126" y="84" text-anchor="middle" font-family="KaiTi,STKaiti,serif" font-size="62" fill="#355c50">木</text></g>
+                <g transform="rotate(27 194 71)"><rect x="188" y="25" width="12" height="72" rx="4" fill="#bd7760"/><path d="M188 94H200L194 110Z" fill="#e6c8a2"/><path d="M191 103H197L194 110Z" fill="#355c50"/></g>
+              </svg>
+            </div>
+            <h2>认字游戏</h2>
+            <p>听读音 · 写汉字 · 读例句</p>
+            <button type="button" class="btn primary" id="btn-start">开始识字</button>
+          </article>
+          <article class="learning-module module-math">
+            <div class="module-art math-art" aria-hidden="true">
+              <svg viewBox="0 0 260 150" focusable="false">
+                <ellipse cx="133" cy="132" rx="93" ry="9" fill="#cfdfbc"/>
+                <g transform="rotate(-10 75 65)"><rect x="43" y="30" width="64" height="72" rx="17" fill="#fffdf5" stroke="#8aaa65" stroke-width="2"/><text x="75" y="81" text-anchor="middle" font-size="51" font-weight="700" fill="#367345">2</text></g>
+                <g transform="rotate(9 188 62)"><rect x="162" y="22" width="52" height="58" rx="15" fill="#dbecc9"/><path d="M177 50H199M188 39V61" stroke="#438152" stroke-width="6" stroke-linecap="round"/></g>
+                <rect x="199" y="93" width="30" height="30" rx="10" fill="#fffdf5"/><path d="M207 108H221" stroke="#438152" stroke-width="4" stroke-linecap="round"/>
+                <g fill="#72a250" stroke="#517c37" stroke-width="2"><path d="M116 88C89 70 83 104 96 123Q109 138 116 129Q130 139 140 119C151 92 133 75 116 88Z"/><path d="M168 92C146 76 138 105 150 124Q160 136 168 129Q181 137 190 120C201 96 184 80 168 92Z"/></g>
+                <path d="M116 87L113 76M168 92L166 81" stroke="#665139" stroke-width="4" stroke-linecap="round"/><path d="M117 81Q119 67 133 72Q130 84 117 81M168 86Q173 73 185 79Q181 90 168 86" fill="#447b44"/>
+                <path d="M101 99Q98 105 101 111M155 103Q152 108 155 113" fill="none" stroke="#bfd79b" stroke-width="4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h2>数数游戏</h2>
+            <p>数苹果 · 学加减 · 10 以内</p>
+            <a class="btn primary" href="math.html" id="btn-start-math">开始数数</a>
+          </article>
         </div>
       </header>
-        <p class="home-hint">每字一关：读音 · 笔画 · 例句</p>
+        <p class="home-hint">选一个喜欢的游戏，慢慢学，一起进步</p>
     </section>
 
     <!-- Character select -->
     <section class="screen" id="screen-select" data-screen="select">
       <header class="topbar">
-        <button type="button" class="btn ghost back" data-goto="home">返回</button>
+        <button type="button" class="btn ghost back" data-goto="home">返回首页</button>
         <h2 class="screen-title">选择汉字</h2>
       </header>
+      <div class="literacy-intro"><p class="literacy-eyebrow">认 字 游 戏</p><h2>今天，认识哪个字？</h2><p>点右边的字母，选一个汉字，一起听一听、写一写。</p></div>
       <div class="group-tabs" id="group-tabs" hidden role="tablist" aria-label="字库分类"></div>
       <div class="select-body with-rail" id="select-body">
         <div class="select-main">
@@ -50,7 +91,7 @@
     <!-- Practice: pronounce then stroke -->
     <section class="screen" id="screen-practice" data-screen="practice">
       <header class="topbar">
-        <button type="button" class="btn ghost back" id="practice-back">返回</button>
+        <button type="button" class="btn ghost back" id="practice-back">返回选字</button>
         <div class="stage-meta">
           <span class="stage-badge">练习 · 读音 + 笔画 + 例句</span>
           <span class="char-pill" id="practice-char-label"></span>
@@ -138,6 +179,7 @@
 
     <!-- Complete -->
     <section class="screen" id="screen-done" data-screen="done">
+      <header class="topbar"><button type="button" class="btn ghost back" data-goto="select">返回选字</button><h2 class="screen-title">认字游戏</h2></header>
       <div class="done-card">
         <p class="seal done-seal" aria-hidden="true">通</p>
         <h2 class="done-title">关卡完成</h2>
@@ -145,7 +187,6 @@
         <p class="done-msg" id="done-msg"></p>
         <div class="done-actions">
           <button type="button" class="btn primary" id="btn-next-char">下一个字</button>
-          <button type="button" class="btn secondary" data-goto="select">返回选字</button>
         </div>
       </div>
     </section>
@@ -174,6 +215,6 @@
 
   <audio id="demo-audio" playsinline webkit-playsinline preload="auto" hidden></audio>
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20260925c"></script>
+  <script type="module" src="js/app.js?v=20261010c"></script>
 </body>
 </html>
