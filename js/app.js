@@ -57,6 +57,8 @@ function saveProgress() {
 function showScreen(name) {
   if (name !== "practice") hideStrokePraise();
   state.screen = name;
+  document.body.classList.toggle("literacy-view", name !== "home");
+  document.body.dataset.screen = name;
   $$(".screen").forEach((el) => {
     el.classList.toggle("active", el.dataset.screen === name);
   });
