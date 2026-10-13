@@ -1,5 +1,7 @@
+import { EXTRA_CHARACTERS } from "./characters-extra.js?v=20261013a";
+
 /**
- * 汉字关卡字库（可练 300 字）
+ * 汉字关卡字库（可练 1000 字）
  *
  * 只收录声母+韵母落在课堂拼音字表内的常用字。
  * 描红字模数据来自 Hanzi Writer。
@@ -2698,7 +2700,7 @@ function isChartSyllable(pinyin) {
 }
 
 // 兜底：剔除轻声助词 + 非视频字表组合；导出时再按新华字典音序排
-const CHARACTERS_FILTERED = CHARACTERS_RAW.filter(
+const CHARACTERS_FILTERED = [...CHARACTERS_RAW, ...EXTRA_CHARACTERS].filter(
   (c) => !LIGHT_TONE_CHARS.has(c.char) && isChartSyllable(c.pinyin)
 );
 
@@ -2738,7 +2740,7 @@ export function pinyinLetter(pinyin) {
 }
 
 function strokeCount(c) {
-  const n = (c.strokeNames || []).length;
+  const n = c.strokeCount || (c.strokeNames || []).length;
   return n > 0 ? n : 99;
 }
 

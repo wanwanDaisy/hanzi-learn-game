@@ -1,6 +1,6 @@
-import { CHARACTERS, getCharacter, XINHUA_LETTERS, pinyinLetter } from "./data.js?v=20260824b";
+import { CHARACTERS, getCharacter, XINHUA_LETTERS, pinyinLetter } from "./data.js?v=20261013a";
 import { StrokeBoard } from "./stroke.js?v=20260824b";
-import { getExamples } from "./examples.js?v=20260824b";
+import { getExamples } from "./examples.js?v=20261013a";
 import { PinyinGlyphPreview } from "./pinyinWrite.js?v=20260824e";
 import {
   speakSyllableParts,

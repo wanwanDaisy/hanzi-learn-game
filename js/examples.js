@@ -1,3 +1,5 @@
+import { EXTRA_CHARACTERS } from "./characters-extra.js?v=20261013a";
+
 /** 关卡例句：每字 1–2 句短句，供第三关朗读。 */
 
 const EXAMPLE_MAP = {
@@ -303,8 +305,10 @@ const EXAMPLE_MAP = {
   "郑": ["我姓郑。", "郑老师来了。"],
 };
 
+const EXTRA_EXAMPLES = Object.fromEntries(EXTRA_CHARACTERS.map(c => [c.char, c.examples]));
+
 export function getExamples(char) {
-  const list = EXAMPLE_MAP[char];
+  const list = EXTRA_EXAMPLES[char] || EXAMPLE_MAP[char];
   if (Array.isArray(list) && list.length) return list.slice(0, 2);
   return [`我认识「${char}」。`];
 }
