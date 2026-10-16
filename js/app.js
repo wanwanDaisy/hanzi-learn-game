@@ -39,7 +39,7 @@ const EXAMPLE_RATE = 0.5;
 
 function setListenBtnIdle(btn) {
   if (!btn) return;
-  btn.innerHTML = `${ICON_EAR}<span>听音</span>`;
+  btn.innerHTML = `${ICON_EAR}<span>听一听</span>`;
 }
 
 function loadProgress() {
@@ -136,7 +136,6 @@ function renderSelect() {
 
   const grid = $("#char-grid");
   grid.innerHTML = `<div class="letter-cards">${chars.map(charCardHtml).join("")}</div>`;
-  grid.scrollTop = 0;
   bindCharCards(grid);
 }
 
@@ -199,13 +198,13 @@ function ensureBoard() {
       feedback.hidden = false;
       if (ok) {
         feedback.className = "feedback ok";
-        feedback.textContent = "▶ ✓ 可重写";
+        feedback.textContent = "笔顺演示完成。可以点「重写」再练，或点完成。";
         $("#btn-to-examples").hidden = false;
       } else {
         feedback.className = "feedback bad";
-        feedback.textContent = "↻ 再试一笔";
+        feedback.textContent = "这一笔不太对，顺着灰色字模再写一次。";
         setTimeout(() => {
-          if (feedback.textContent === "↻ 再试一笔") feedback.hidden = true;
+          if (feedback.textContent.includes("不太对")) feedback.hidden = true;
         }, 1200);
       }
     },
@@ -444,7 +443,7 @@ function openPractice() {
   $("#pronounce-meaning").textContent = item.meaning;
   $("#pronounce-feedback").hidden = true;
   $("#btn-skip-speak").hidden = false;
-  // The pencil button keeps its icon across character changes.
+  $("#btn-skip-speak").textContent = isWeChat() ? "先写汉字" : "听完了，去写汉字";
   $("#btn-finish").hidden = true;
   $("#btn-to-examples").hidden = true;
   hideStrokePraise();
@@ -469,7 +468,7 @@ async function onListenAll() {
   const btn = $("#btn-listen-all");
   const feedback = $("#pronounce-feedback");
   btn.disabled = true;
-  btn.textContent = "🔊 …";
+  btn.textContent = "正在读给你听…";
   const prompt = $("#pronounce-prompt");
   const ok = await speakSyllableParts(item.char, item.pinyin, (step) => {
     if (step.phase === "preview") {
@@ -575,12 +574,7 @@ function init() {
       "正在微信中打开：播报可能无声。请点右上角 ··· → 在浏览器打开；也可先去写汉字。";
   }
 
-  if (location.hash === "#select") {
-    renderSelect();
-    showScreen("select");
-  } else {
-    showScreen("home");
-  }
+  showScreen("home");
 }
 
 init();
