@@ -1,8 +1,0 @@
-.ui-icon{width:28px;height:28px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
-button:has(>.ui-icon),a:has(>.ui-icon){display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:48px;min-height:48px}
-button>.ui-icon:only-child,a>.ui-icon:only-child{width:30px;height:30px}
-.ui-help{font-size:13px;color:#67796c;margin:12px 0}.ui-help summary{cursor:pointer;min-height:32px;padding:6px}.ui-help p{line-height:1.7}
-.intro>p:empty,.eyebrow:empty,.home-hint:empty,.literacy-intro>p:empty,.note:empty{display:none}
-.math-page .feedback{font-size:22px;min-height:48px}.math-page .choice[data-mode]{font-size:24px;font-weight:700}.math-page #prompt{font-size:24px}.math-page .caption:empty{display:none}
-#review-stage{font-size:22px}#review-writing h2,#review-reading h2{font-size:24px}
-@media(prefers-reduced-motion:no-preference){.answer.correct{animation:icon-celebrate .35s ease-out}@keyframes icon-celebrate{50%{transform:scale(1.06)}}}
