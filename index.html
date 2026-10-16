@@ -6,7 +6,7 @@
   <title>字境 · 认字与数数</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20261010e" />
+  <link rel="stylesheet" href="styles.css?v=20261016scroll" />
 </head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
@@ -77,12 +77,23 @@
         <button type="button" class="btn ghost back" data-goto="home">返回首页</button>
         <h2 class="screen-title">选择汉字</h2>
       </header>
+      <div class="select-intro-row">
       <div class="literacy-intro"><p class="literacy-eyebrow">认 字 游 戏</p><h2>今天，认识哪个字？</h2><p>点右边的字母，选一个汉字，一起听一听、写一写。</p></div>
+        <a class="review-entry" href="review.html" aria-label="复习考核" title="复习考核：读一读，写一写">
+          <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <rect x="10" y="9" width="28" height="34" rx="7" fill="#fffdf4" stroke="#38775a" stroke-width="2.5"/>
+            <rect x="17" y="5" width="14" height="9" rx="4" fill="#9ecb82" stroke="#38775a" stroke-width="2"/>
+            <path d="m17 25 4 4 10-10" fill="none" stroke="#38775a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 35h12" stroke="#9ecb82" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span>复习考核</span>
+        </a>
+      </div>
       <div class="group-tabs" id="group-tabs" hidden role="tablist" aria-label="字库分类"></div>
       <div class="select-body with-rail" id="select-body">
         <div class="select-main">
           <p class="select-meta" id="select-meta"></p>
-          <div class="char-grid" id="char-grid"></div>
+          <div class="char-grid" id="char-grid" tabindex="0" role="region" aria-label="汉字字库，可上下滚动"></div>
         </div>
         <nav class="letter-rail" id="letter-rail" role="tablist" aria-label="新华字典音序"></nav>
       </div>
@@ -215,6 +226,6 @@
 
   <audio id="demo-audio" playsinline webkit-playsinline preload="auto" hidden></audio>
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20261013a"></script>
+  <script type="module" src="js/app.js?v=20261016review"></script>
 </body>
 </html>
