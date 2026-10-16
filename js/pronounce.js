@@ -611,9 +611,11 @@ function speakUtterance(text, { rate, lang, pitch, voice }) {
 
     let settled = false;
     let started = false;
+    let resumeTimer = null;
     const finish = (ok) => {
       if (settled) return;
       settled = true;
+      clearTimeout(resumeTimer);
       resolve(ok);
     };
 
@@ -628,6 +630,13 @@ function speakUtterance(text, { rate, lang, pitch, voice }) {
       try {
         synth.resume();
         synth.speak(u);
+        // 部分桌面浏览器会接收请求却不启动；仅在未开始时恢复一次。
+        if (!isIOSWebKit()) {
+          resumeTimer = setTimeout(() => {
+            if (settled || started || !synth.speaking) return;
+            try { synth.pause(); synth.resume(); } catch { /* unavailable service */ }
+          }, 300);
+        }
       } catch {
         finish(false);
       }

@@ -11,7 +11,7 @@ import {
   displayFinal,
   stopDemoAudio,
   unlockPlayback,
-} from "./pronounce.js?v=20260925c";
+} from "./pronounce.js?v=20261016resume";
 
 const STORAGE_KEY = "zijijing-progress-v2";
 
@@ -109,6 +109,7 @@ function firstPresentLetter(byLetter) {
 function setOpenLetter(letter) {
   state.letter = letter;
   renderSelect();
+  $("#char-grid").scrollTop = 0;
 }
 
 function renderLetterRail(byLetter) {
@@ -574,7 +575,12 @@ function init() {
       "正在微信中打开：播报可能无声。请点右上角 ··· → 在浏览器打开；也可先去写汉字。";
   }
 
-  showScreen("home");
+  if (location.hash === "#select") {
+    renderSelect();
+    showScreen("select");
+  } else {
+    showScreen("home");
+  }
 }
 
 init();
