@@ -6,8 +6,8 @@
   <title>字境 · 认字与数数</title>
   <!-- 使用 jsDelivr，避免微信/国内访问 Google Fonts 失败 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
-  <link rel="stylesheet" href="styles.css?v=20261015a" />
-<link rel="stylesheet" href="icons.css?v=20261015ui"></head>
+  <link rel="stylesheet" href="styles.css?v=20261010e" />
+</head>
 <body>
   <div id="env-banner" class="env-banner" hidden role="status"></div>
   <div class="kai-preload" aria-hidden="true">一二三四五六七八九十百万不也很最太都就和是有没在这那什谁哪几怎为能会可要知道学习我你他她人大口目手足心耳头牙发身男女子父母爸妈哥姐弟妹爷奶孩友老少好爱喜上中右后里外东南西北来去回出进到看听吃喝睡走跑站飞玩买给用打找拿放开门房车路书衣饭菜水日月山木土石雨云风星雪草树叶春秋冬河海明空地气阳红蓝绿白黑金鱼马牛羊狗猫虫鸡鸭猪兔虎龙蛇猴鼠蛙字文正词句课本笔纸写读认诗歌数问答题考试师班同新旧长高低慢早今岁才又再还只把被从椅灯杯勺米包肉蛋糖油茶酒饿饱热冷温清洗澡服帽鞋袜裤袋卖市工事业忙休息病医药雷冰雾露沙尘湖溪城村林森竹松柳桃梨杏豆蔬蜂蝶蚁蛛龟鲸鹅鸽鹰鸦雀狮狼狐鹿驴蚕蝇蚊蟹蝌蚪豹王李张刘陈杨赵周吴徐孙朱胡郑</div>
@@ -47,8 +47,8 @@
               </svg>
             </div>
             <h2>认字游戏</h2>
-            <p>1000 字</p>
-            <button type="button" class="btn primary" id="btn-start" aria-label="开始识字" title="开始识字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6Q6 2 2 5v14q5-3 10 0 5-3 10 0V5q-4-3-10 1v13"/></svg><span>认字</span></button>
+            <p>1000 字 · 听读音 · 写汉字 · 读例句</p>
+            <button type="button" class="btn primary" id="btn-start">开始识字</button>
           </article>
           <article class="learning-module module-math">
             <div class="module-art math-art" aria-hidden="true">
@@ -63,37 +63,26 @@
               </svg>
             </div>
             <h2>数数游戏</h2>
-            <p>10 以内</p>
-            <a class="btn primary" href="math.html" id="btn-start-math" aria-label="开始数数">＋ <span>数数</span></a>
+            <p>数苹果 · 学加减 · 10 以内</p>
+            <a class="btn primary" href="math.html" id="btn-start-math">开始数数</a>
           </article>
         </div>
       </header>
-        <p class="home-hint"></p>
+        <p class="home-hint">选一个喜欢的游戏，慢慢学，一起进步</p>
     </section>
 
     <!-- Character select -->
     <section class="screen" id="screen-select" data-screen="select">
       <header class="topbar">
-        <button type="button" class="btn ghost back" data-goto="home" aria-label="返回首页" title="返回首页"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+        <button type="button" class="btn ghost back" data-goto="home">返回首页</button>
         <h2 class="screen-title">选择汉字</h2>
       </header>
-      <div class="select-intro-row">
-        <div class="literacy-intro"><p class="literacy-eyebrow">认 字 游 戏</p><h2>认一认</h2><p></p></div>
-        <a class="review-entry" href="review.html" aria-label="复习考核" title="复习考核：读一读，写一写">
-          <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-            <rect x="10" y="9" width="28" height="34" rx="7" fill="#fffdf4" stroke="#38775a" stroke-width="2.5"/>
-            <rect x="17" y="5" width="14" height="9" rx="4" fill="#9ecb82" stroke="#38775a" stroke-width="2"/>
-            <path d="m17 25 4 4 10-10" fill="none" stroke="#38775a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18 35h12" stroke="#9ecb82" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-          <span>复习考核</span>
-        </a>
-      </div>
+      <div class="literacy-intro"><p class="literacy-eyebrow">认 字 游 戏</p><h2>今天，认识哪个字？</h2><p>点右边的字母，选一个汉字，一起听一听、写一写。</p></div>
       <div class="group-tabs" id="group-tabs" hidden role="tablist" aria-label="字库分类"></div>
       <div class="select-body with-rail" id="select-body">
         <div class="select-main">
           <p class="select-meta" id="select-meta"></p>
-          <div class="char-grid" id="char-grid" tabindex="0" role="region" aria-label="汉字字库，可上下滚动"></div>
+          <div class="char-grid" id="char-grid"></div>
         </div>
         <nav class="letter-rail" id="letter-rail" role="tablist" aria-label="新华字典音序"></nav>
       </div>
@@ -102,15 +91,15 @@
     <!-- Practice: pronounce then stroke -->
     <section class="screen" id="screen-practice" data-screen="practice">
       <header class="topbar">
-        <button type="button" class="btn ghost back" id="practice-back" aria-label="返回选字" title="返回选字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+        <button type="button" class="btn ghost back" id="practice-back">返回选字</button>
         <div class="stage-meta">
-          <span class="stage-badge">👂 → ✏️ → 📖</span>
+          <span class="stage-badge">练习 · 读音 + 笔画 + 例句</span>
           <span class="char-pill" id="practice-char-label"></span>
         </div>
       </header>
       <div class="stage-body practice-body">
         <section class="practice-block" id="block-pronounce" aria-label="读音校准">
-          <h3 class="block-title"><span class="step-num">1</span> 👂 听音</h3>
+          <h3 class="block-title"><span class="step-num">1</span> 校准读音</h3>
           <div class="pinyin-card compact">
             <span class="big-char" id="pronounce-char"></span>
             <span class="pinyin" id="pronounce-pinyin"></span>
@@ -139,7 +128,7 @@
           <p id="pronounce-prompt" class="visually-hidden">先听一听，再跟着读</p>
           <div class="pronounce-actions">
             <button type="button" class="btn secondary kid-btn" id="btn-listen-all"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13 2a6 6 0 0 0-6 6v4.5c0 1.3.8 2.4 1.9 2.9l1.1.5V18a3 3 0 0 0 3 3h1a1 1 0 1 0 0-2h-1a1 1 0 0 1-1-1v-1.4l1.6-.7A4.5 4.5 0 0 0 15 12.5V8a3 3 0 0 1 6 0v1.2a1 1 0 1 0 2 0V8A5 5 0 0 0 13 2zm-2.2 8.8a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6z"/></svg><span>听一听</span></button>
-            <button type="button" class="btn primary kid-btn" id="btn-skip-speak" aria-label="去写汉字" title="去写汉字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 16 11-11 4 4L8 20H4ZM13 7l4 4"/></svg></button>
+            <button type="button" class="btn primary kid-btn" id="btn-skip-speak">听完了，去写汉字</button>
           </div>
           <p class="feedback" id="pronounce-feedback" hidden></p>
         </section>
@@ -159,30 +148,30 @@
         </section>
 
         <section class="practice-block stroke-block" id="block-stroke" aria-label="笔画书写" data-locked="true">
-          <h3 class="block-title"><span class="step-num">2</span> ✏️ 写字</h3>
-          <p class="stroke-lock-hint" id="stroke-lock-hint">🔒 先听音</p>
+          <h3 class="block-title"><span class="step-num">2</span> 练习笔画</h3>
+          <p class="stroke-lock-hint" id="stroke-lock-hint">听完读音后解锁描红</p>
           <div class="stroke-panel" id="stroke-panel">
             <p class="prompt sm" id="stroke-prompt">顺着绿色虚线描红，从红点起笔</p>
             <div class="stroke-board">
               <div id="stroke-target" class="stroke-target" aria-label="笔画书写板"></div>
               <div class="stroke-hud">
                 <span id="stroke-count">笔画 0 / 0</span>
-                <button type="button" class="btn ghost sm" id="btn-stroke-undo" aria-label="撤销上一笔" title="撤销上一笔"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h10a6 6 0 0 1 0 12M9 4 4 9l5 5"/></svg></button>
-                <button type="button" class="btn ghost sm" id="btn-stroke-clear" aria-label="重新书写" title="重新书写"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg></button>
-                <button type="button" class="btn ghost sm" id="btn-stroke-hint" aria-label="演示笔顺" title="演示笔顺"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 11 7-11 7Z"/></svg></button>
+                <button type="button" class="btn ghost sm" id="btn-stroke-undo">撤销</button>
+                <button type="button" class="btn ghost sm" id="btn-stroke-clear">重写</button>
+                <button type="button" class="btn ghost sm" id="btn-stroke-hint">演示</button>
               </div>
             </div>
             <p class="feedback" id="stroke-feedback" hidden></p>
-            <button type="button" class="btn primary" id="btn-to-examples" hidden aria-label="去读例句" title="去读例句"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6Q6 2 2 5v14q5-3 10 0 5-3 10 0V5q-4-3-10 1v13"/></svg></button>
+            <button type="button" class="btn primary" id="btn-to-examples" hidden>写完了，读例句</button>
           </div>
         </section>
 
         <section class="practice-block examples-block" id="block-examples" aria-label="读例句" data-locked="true">
-          <h3 class="block-title"><span class="step-num">3</span> 📖 例句</h3>
-          <p class="examples-lock-hint" id="examples-lock-hint">🔒 先写字</p>
+          <h3 class="block-title"><span class="step-num">3</span> 读例句</h3>
+          <p class="examples-lock-hint" id="examples-lock-hint">描红完成后解锁</p>
           <div class="examples-panel" id="examples-panel" hidden>
             <ul class="example-list" id="example-list"></ul>
-            <button type="button" class="btn primary" id="btn-finish" hidden aria-label="完成本字" title="完成本字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6"/></svg></button>
+            <button type="button" class="btn primary" id="btn-finish" hidden>完成 · 下一字</button>
           </div>
         </section>
       </div>
@@ -190,14 +179,14 @@
 
     <!-- Complete -->
     <section class="screen" id="screen-done" data-screen="done">
-      <header class="topbar"><button type="button" class="btn ghost back" data-goto="select" aria-label="返回选字" title="返回选字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><h2 class="screen-title">认字游戏</h2></header>
+      <header class="topbar"><button type="button" class="btn ghost back" data-goto="select">返回选字</button><h2 class="screen-title">认字游戏</h2></header>
       <div class="done-card">
         <p class="seal done-seal" aria-hidden="true">通</p>
-        <h2 class="done-title">👍 真棒</h2>
+        <h2 class="done-title">关卡完成</h2>
         <p class="done-char" id="done-char"></p>
         <p class="done-msg" id="done-msg"></p>
         <div class="done-actions">
-          <button type="button" class="btn primary" id="btn-next-char" aria-label="下一个字" title="下一个字"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+          <button type="button" class="btn primary" id="btn-next-char">下一个字</button>
         </div>
       </div>
     </section>
@@ -226,6 +215,6 @@
 
   <audio id="demo-audio" playsinline webkit-playsinline preload="auto" hidden></audio>
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
-  <script type="module" src="js/app.js?v=20261015ui"></script>
+  <script type="module" src="js/app.js?v=20261013a"></script>
 </body>
 </html>
